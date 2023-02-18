@@ -149,7 +149,7 @@ def load_data(name):
     ## function to load all the data from the filepath
 
     #filepath="/home/fkmk708805/data/workdata/708805/helen/Proc_data/"
-    filepath="/home/DIDE/smishra/Simulations/"
+    filepath="/home/DIDE/smishra/Simulations/input_data/"
     X = np.squeeze(np.load("".join([filepath,name, "_X.npy"])))
     Y_raw = np.squeeze(np.load("".join([filepath,name, "_YH.npy"])))
     Y = Y_raw[:, np.shape(Y_raw)[1] - 1]

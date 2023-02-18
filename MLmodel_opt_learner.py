@@ -865,15 +865,22 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     # set up the weighted random sampler
     class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
     print(class_weights)
-    sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
+    count=Counter(Y[splits[0]])
+    print(count)
+    wgts=[1/count[0],1/count[1]]
+    print(wgts)
+    print(len(wgts))
+    print(len(dsets))
+    sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
 
     #print(dir(dsets))
-    print(dsets.train)
-    print(dsets.valid)
+    #print(dsets.train)
+    #print(dsets.valid)
 
     #weights=torch.tensor(class_weights/np.sum(class_weights), dtype=torch.float)
     #print(weights)
     # set up batches etc
+    
     dls=TSDataLoaders.from_dsets(
             dsets.train,
             dsets.valid,
@@ -887,31 +894,34 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     for i in range(10):
         x,y = dls.one_batch()
         print(sum(y)/len(y))
-        ## this shows not 50% classes
-
-    trn, new_val, val, train_L, val_L, new_val_o = dicomsplit(valid_pct=0.2, seed=7)(p_items)
-    train_L[-1]
-
-    def get_lb(fn):
-        fn = str(fn)
-        lb = fn.split('\\')[-2]
-        return lb
-    labels = [get_lb(item) for item in train_L[-1]]
-    Counter(labels)
-    dset = pneumothorax.datasets(df.values)
-
-    count = Counter(labels)
-    wgts = [1/count[dset.vocab[label]] for img, label in dset.train]
-    len(wgts)
-
+    ## this shows not 50% classes
+    
     del dls
 
-    set_seed(randnum)
-    dls = pneumothorax.dataloaders(df.values, bs=32, num_workers=0, dl_type=WeightedDL, wgts=wgts)
+    Data_load.random_seed(randnum,True)
+    rng=np.random.default_rng(randnum)
+
+    dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
 
     for i in range(10):
         x,y = dls.one_batch()
         print(sum(y)/len(y))
+        ## this shows not 50% classes
+
+
+
+    #count = Counter(labels)
+    #wgts = [1/count[dset.vocab[label]] for img, label in dset.train]
+    #len(wgts)
+
+    #del dls
+
+    #set_seed(randnum)
+    #dls = pneumothorax.dataloaders(df.values, bs=32, num_workers=0, dl_type=WeightedDL, wgts=wgts)
+
+    #for i in range(10):
+    #    x,y = dls.one_batch()
+    #    print(sum(y)/len(y))
 
     # fit the model to the train/test data
 
