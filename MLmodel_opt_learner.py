@@ -880,6 +880,9 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #weights=torch.tensor(class_weights/np.sum(class_weights), dtype=torch.float)
     #print(weights)
     # set up batches etc
+
+    Data_load.random_seed(randnum,True)
+    rng=np.random.default_rng(randnum)
     
     dls=TSDataLoaders.from_dsets(
             dsets.train,
@@ -896,17 +899,18 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         print(sum(y)/len(y))
     ## this shows not 50% classes
     
-    del dls
+    #del dls
 
-    Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
+    #Data_load.random_seed(randnum,True)
+    #rng=np.random.default_rng(randnum)
 
-    dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
+    #dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
+    #print(dls)
 
-    for i in range(10):
-        x,y = dls.one_batch()
-        print(sum(y)/len(y))
-        ## this shows not 50% classes
+    #for i in range(10):
+    #    x,y = dls.one_batch()
+    #    print(sum(y)/len(y))
+    #    ## this shows not 50% classes
 
 
 
@@ -916,7 +920,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     #del dls
 
-    #set_seed(randnum)
+    #set_seed(randnum)                                                                                                    3ed
     #dls = pneumothorax.dataloaders(df.values, bs=32, num_workers=0, dl_type=WeightedDL, wgts=wgts)
 
     #for i in range(10):
@@ -951,25 +955,25 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     start=timeit.default_timer()
 
 
-    archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
+    #archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
 
-    results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
-    for i, (arch, k) in enumerate(archs):
-        model = create_model(arch, dls=dls, **k)
-        print(model.__class__.__name__)
-        learn = Learner(dls, model,  metrics=accuracy)
-        start = time.time()
-        learn.fit_one_cycle(100, 1e-3)
-        elapsed = time.time() - start
-        vals = learn.recorder.values[-1]
-        results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
-        results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
-        clear_output()
-        display(results)
+    #results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
+    #for i, (arch, k) in enumerate(archs):
+    #    model = create_model(arch, dls=dls, **k)
+    #    print(model.__class__.__name__)
+    #    learn = Learner(dls, model,  metrics=accuracy)
+    #    start = time.time()
+    #    learn.fit_one_cycle(100, 1e-3)
+    #    elapsed = time.time() - start
+    #    vals = learn.recorder.values[-1]
+    #    results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
+    #    results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
+    #    clear_output()
+    #    display(results)
 
-    #model = InceptionTime(dls.vars, dls.c)
-    #learn = Learner(dls, model, metrics=accuracy)
-    #learn.save('stage0')
+    model = InceptionTime(dls.vars, dls.c)
+    learn = Learner(dls, model, metrics=accuracy)
+    learn.save('stage0')
 
     #learn.load('stage0')
     #learn.lr_find()
@@ -983,10 +987,10 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #                zero_norm=False, bn_1st=True, act=<class
     #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-    #learn.fit_one_cycle(25, lr_max=1e-3)
-    #learn.save('stage1')
-    #learn.recorder.plot_metrics()
-    #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+    learn.fit_one_cycle(25, lr_max=1e-3)
+    learn.save('stage1')
+    learn.recorder.plot_metrics()
+    learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
 
 
@@ -1009,14 +1013,16 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         #clear_output()
         #display(results)
 
-    clf=TSClassifier(X3d,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-    clf.fit_one_cycle(epochs,lr_max)
+    #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    #clf.fit_one_cycle(epochs,lr_max)
     stop=timeit.default_timer()
     runtime=stop-start
     
     # assess model generalisation to test data
-    valid_dl=clf.dls.valid
-    acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
+    #valid_dl=clf.dls.valid
+    #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
+    valid_dl=learn.dls.valid
+    acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X[splits[1]],Y[splits[1]],valid_dl)
     return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
 
 def test_results(f_model,X_test,Y_test,valid_dl):
