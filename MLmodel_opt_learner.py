@@ -971,12 +971,16 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #    clear_output()
     #    display(results)
 
-    model = InceptionTime(dls.vars, dls.c)
-    learn = Learner(dls, model, metrics=accuracy)
+    #model = InceptionTime(dls.vars, dls.c)
+    model = InceptionTimePlus(dls.vars, dls.c)
+    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
     learn.save('stage0')
 
     #learn.load('stage0')
     #learn.lr_find()
+
+    #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    
 
     #InceptionTimePlus (c_in, c_out, seq_len=None, nf=32, nb_filters=None,
     #                flatten=False, concat_pool=False, fc_dropout=0.0,
@@ -987,9 +991,9 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #                zero_norm=False, bn_1st=True, act=<class
     #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-    learn.fit_one_cycle(25, lr_max=1e-3)
+    learn.fit_one_cycle(epochs, lr_max)
     learn.save('stage1')
-    learn.recorder.plot_metrics()
+    #learn.recorder.plot_metrics()
     learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
 
