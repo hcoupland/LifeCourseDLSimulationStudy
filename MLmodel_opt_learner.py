@@ -809,6 +809,10 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     X_scaled=Data_load.prep_data(X,splits)
 
     # prep the data for the model
+    print(X_scaled.shape)
+    print(Y.shape)
+
+    # prep the data for the model
     X3d=to3d(X_scaled)
     tfms=[None,Categorize()]
     dsets = TSDatasets(X3d, Y,tfms=tfms, splits=splits,inplace=True)
@@ -828,10 +832,14 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         shuffle=False,
         batch_tfms=(TSStandardize(by_var=True),),
         )
+
+    for i in range(10):
+        x,y = dls.one_batch()
+        print(sum(y)/len(y))
+    ## this shows not 50% classes
+    
     
     # fit the model to the train/test data
-    print(arch)
-    print(params)
 
     # nf=trial.suggest_categorical('nf',[32,64,96,128])
     # dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
@@ -844,33 +852,28 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
-    clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
-    clf.fit_one_cycle(epochs,lr_max)
+    #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
+
+    model = InceptionTimePlus(dls.vars, dls.c)
+    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    learn.save('stage0')
+
+    learn.fit_one_cycle(epochs, lr_max)
+    learn.save('stage1')
+    learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+
+    #clf.fit_one_cycle(epochs,lr_max)
     stop=timeit.default_timer()
     runtime=stop-start
 
     # assess model fit to test data
-    valid_dl=clf.dls.valid
-    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
+    #valid_dl=clf.dls.valid
+    #acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
+    valid_dl=learn.dls.valid
+    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
 
     #learn=TSClassifier(X3d,Y,splits=splits,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
 
-    # FLweights=[alpha,1-alpha]
-    # # define the metrics for model fitting output
-    # metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
-    # weights=torch.tensor(FLweights, dtype=torch.float)
-    # ESpatience=2
-
-    # # scale and one-hot the data
-    # X_scaled=Data_load.prep_data(X,splits)
-
-    # # prep the data for the model
-    # print(X_scaled.shape)
-    # print(Y.shape)
-
-
-    # tfms=[None,[Categorize()]]
-    # dsets = TSDatasets(X_scaled, Y,tfms=tfms, splits=splits)
 
     # # set up the weighted random sampler
     # class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
@@ -899,41 +902,14 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     #         #batch_tfms=(TSStandardize(by_var=True),),
     #         )
 
-    # for i in range(10):
-    #     x,y = dls.one_batch()
-    #     print(sum(y)/len(y))
-    # ## this shows not 50% classes
+
     
-    
-    # print(dls.c)
-    # print(dls.len)
-    # print(dls.vars)
+
     # #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
     # #weights=torch.tensor(weights, dtype=torch.float)
-    # Data_load.random_seed2(randnum,True,dls=dls)
-    # rng=np.random.default_rng(randnum)
-    # start=timeit.default_timer()
 
 
-    # #archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
 
-    # #results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
-    # #for i, (arch, k) in enumerate(archs):
-    # #    model = create_model(arch, dls=dls, **k)
-    # #    print(model.__class__.__name__)
-    # #    learn = Learner(dls, model,  metrics=accuracy)
-    # #    start = time.time()
-    # #    learn.fit_one_cycle(100, 1e-3)
-    # #    elapsed = time.time() - start
-    # #    vals = learn.recorder.values[-1]
-    # #    results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
-    # #    results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
-    # #    clear_output()
-    # #    display(results)
-
-    # model = InceptionTimePlus(dls.vars, dls.c)
-    # learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-    # learn.save('stage0')
 
     # #InceptionTimePlus (c_in, c_out, seq_len=None, nf=32, nb_filters=None,
     # #                flatten=False, concat_pool=False, fc_dropout=0.0,
@@ -943,19 +919,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # #                conv_dropout=0.0, sa=False, se=None, norm='Batch',
     # #                zero_norm=False, bn_1st=True, act=<class
     # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
-
-    # learn.fit_one_cycle(epochs, lr_max)
-    # learn.save('stage1')
-    # learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-
-    # stop=timeit.default_timer()
-    # runtime=stop-start
-    
-    # # assess model generalisation to test data
-    # valid_dl=learn.dls.valid
-    # acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
-
-
 
     return runtime,acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11
 
