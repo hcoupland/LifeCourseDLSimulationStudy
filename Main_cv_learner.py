@@ -15,7 +15,7 @@ randnum2=5#int(sys.argv[3])
 epochs=1#int(sys.argv[4])#2#10
 randnum1=5
 num_optuna_trials =2# int(sys.argv[5])#2#100
-hype= "False"# sys.argv[6]
+hype= "True"# sys.argv[6]
 
 ## Function to load in data and also obtain the train/test split
 Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y = Data_load.split_data(name=name,randnum=randnum1)

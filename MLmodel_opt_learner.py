@@ -794,11 +794,16 @@ def hypersearchXCM(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
 
 def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size):
     # function to fit the model on the train/test data with pre-trained hyperparameters
+    Data_load.random_seed(randnum,True)
+    rng=np.random.default_rng(randnum)
+    torch.set_num_threads(18)
 
-    FLweights=[alpha,1-alpha]
     # metrics to output whilst fitting
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
-    weights=torch.tensor(FLweights, dtype=torch.float)
+
+    # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
+
+    weights=torch.tensor([alpha,1-alpha], dtype=torch.float)
     
     # standardize and one-hot the data
     X_scaled=Data_load.prep_data(X,splits)
@@ -825,7 +830,16 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         )
     
     # fit the model to the train/test data
-    
+    print(arch)
+    print(params)
+
+    # nf=trial.suggest_categorical('nf',[32,64,96,128])
+    # dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
+    # dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
+    # kernel_size=trial.suggest_categorical('ks',[20,40,60])
+    # dilation_size=trial.suggest_categorical('dilation',[1,2,3])
+    # model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,dilation=dilation_size)
+
     Data_load.random_seed2(randnum,True,dls=dls)
     rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
@@ -839,205 +853,108 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     valid_dl=clf.dls.valid
     acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
 
+    #learn=TSClassifier(X3d,Y,splits=splits,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+
+    # FLweights=[alpha,1-alpha]
+    # # define the metrics for model fitting output
+    # metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
+    # weights=torch.tensor(FLweights, dtype=torch.float)
+    # ESpatience=2
+
+    # # scale and one-hot the data
+    # X_scaled=Data_load.prep_data(X,splits)
+
+    # # prep the data for the model
+    # print(X_scaled.shape)
+    # print(Y.shape)
 
 
+    # tfms=[None,[Categorize()]]
+    # dsets = TSDatasets(X_scaled, Y,tfms=tfms, splits=splits)
+
+    # # set up the weighted random sampler
+    # class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
+    # print(class_weights)
+    # count=Counter(Y[splits[0]])
+    # print(count)
+    # wgts=[1/count[0],1/count[1]]
+    # print(wgts)
+    # print(len(wgts))
+    # print(len(dsets))
+    # sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
 
 
-    FLweights=[alpha,1-alpha]
-    # define the metrics for model fitting output
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
-    weights=torch.tensor(FLweights, dtype=torch.float)
-    ESpatience=2
+    # # set up batches etc
 
-    # scale and one-hot the data
-    X_scaled=Data_load.prep_data(X,splits)
-
-    # prep the data for the model
-    print(X_scaled.shape)
-    print(Y.shape)
-
-
-    tfms=[None,[Categorize()]]
-    dsets = TSDatasets(X_scaled, Y,tfms=tfms, splits=splits)
-
-    # set up the weighted random sampler
-    class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
-    print(class_weights)
-    count=Counter(Y[splits[0]])
-    print(count)
-    wgts=[1/count[0],1/count[1]]
-    print(wgts)
-    print(len(wgts))
-    print(len(dsets))
-    sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
-
-
-    # set up batches etc
-
-    Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
+    # Data_load.random_seed(randnum,True)
+    # rng=np.random.default_rng(randnum)
     
-    dls=TSDataLoaders.from_dsets(
-            dsets.train,
-            dsets.valid,
-            #sampler=sampler,
-            bs=[batch_size,batch_size*2],
-            num_workers=0,
-            #shuffle=False,
-            #batch_tfms=(TSStandardize(by_var=True),),
-            )
+    # dls=TSDataLoaders.from_dsets(
+    #         dsets.train,
+    #         dsets.valid,
+    #         #sampler=sampler,
+    #         bs=[batch_size,batch_size*2],
+    #         num_workers=0,
+    #         #shuffle=False,
+    #         #batch_tfms=(TSStandardize(by_var=True),),
+    #         )
 
-    for i in range(10):
-        x,y = dls.one_batch()
-        print(sum(y)/len(y))
-    ## this shows not 50% classes
+    # for i in range(10):
+    #     x,y = dls.one_batch()
+    #     print(sum(y)/len(y))
+    # ## this shows not 50% classes
     
     
-    print(dls.c)
-    print(dls.len)
-    print(dls.vars)
-    #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-    #weights=torch.tensor(weights, dtype=torch.float)
-    Data_load.random_seed2(randnum,True,dls=dls)
-    rng=np.random.default_rng(randnum)
-    start=timeit.default_timer()
+    # print(dls.c)
+    # print(dls.len)
+    # print(dls.vars)
+    # #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
+    # #weights=torch.tensor(weights, dtype=torch.float)
+    # Data_load.random_seed2(randnum,True,dls=dls)
+    # rng=np.random.default_rng(randnum)
+    # start=timeit.default_timer()
 
 
-    #archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
+    # #archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
 
-    #results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
-    #for i, (arch, k) in enumerate(archs):
-    #    model = create_model(arch, dls=dls, **k)
-    #    print(model.__class__.__name__)
-    #    learn = Learner(dls, model,  metrics=accuracy)
-    #    start = time.time()
-    #    learn.fit_one_cycle(100, 1e-3)
-    #    elapsed = time.time() - start
-    #    vals = learn.recorder.values[-1]
-    #    results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
-    #    results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
-    #    clear_output()
-    #    display(results)
+    # #results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
+    # #for i, (arch, k) in enumerate(archs):
+    # #    model = create_model(arch, dls=dls, **k)
+    # #    print(model.__class__.__name__)
+    # #    learn = Learner(dls, model,  metrics=accuracy)
+    # #    start = time.time()
+    # #    learn.fit_one_cycle(100, 1e-3)
+    # #    elapsed = time.time() - start
+    # #    vals = learn.recorder.values[-1]
+    # #    results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
+    # #    results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
+    # #    clear_output()
+    # #    display(results)
 
-    model = InceptionTimePlus(dls.vars, dls.c)
-    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-    learn.save('stage0')
+    # model = InceptionTimePlus(dls.vars, dls.c)
+    # learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    # learn.save('stage0')
 
-    #InceptionTimePlus (c_in, c_out, seq_len=None, nf=32, nb_filters=None,
-    #                flatten=False, concat_pool=False, fc_dropout=0.0,
-    #                bn=False, y_range=None, custom_head=None, ks=40,
-    #                bottleneck=True, padding='same', coord=False,
-    #                separable=False, dilation=1, stride=1,
-    #                conv_dropout=0.0, sa=False, se=None, norm='Batch',
-    #                zero_norm=False, bn_1st=True, act=<class
-    #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
+    # #InceptionTimePlus (c_in, c_out, seq_len=None, nf=32, nb_filters=None,
+    # #                flatten=False, concat_pool=False, fc_dropout=0.0,
+    # #                bn=False, y_range=None, custom_head=None, ks=40,
+    # #                bottleneck=True, padding='same', coord=False,
+    # #                separable=False, dilation=1, stride=1,
+    # #                conv_dropout=0.0, sa=False, se=None, norm='Batch',
+    # #                zero_norm=False, bn_1st=True, act=<class
+    # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-    learn.fit_one_cycle(epochs, lr_max)
-    learn.save('stage1')
-    learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+    # learn.fit_one_cycle(epochs, lr_max)
+    # learn.save('stage1')
+    # learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
-    stop=timeit.default_timer()
-    runtime=stop-start
+    # stop=timeit.default_timer()
+    # runtime=stop-start
     
-    # assess model generalisation to test data
-    valid_dl=learn.dls.valid
-    acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
+    # # assess model generalisation to test data
+    # valid_dl=learn.dls.valid
+    # acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
 
-    
-    # the metrics outputted when fitting the model
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
-    
-    def objective_cv(trial):
-        # objective function enveloping the model objective function with cross-validation
-
-        def objective(trial):
-            # model objective function deciding values of hyperparameters so set ranges for each one that varies
-            learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
-            ESpatience=trial.suggest_categorical("ESpatience",[2,4,6])
-            alpha=trial.suggest_float("alpha",0.0,1.0)
-            gamma=trial.suggest_float("gamma",0.0,5.0)
-            FLweight1=alpha#trial.suggest_float("FLweight1",0,2)
-            FLweight2=1-alpha#num_out/(num_out-FLweight)#trial.suggest_float("FLweight2",1,100)
-            nf=trial.suggest_categorical('nf',[32,64,96,128])
-            dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
-            dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
-            kernel_size=trial.suggest_categorical('ks',[20,40,60])
-            dilation_size=trial.suggest_categorical('dilation',[1,2,3])
-            #stride_size=trial.suggest_categorical('stride',[1,2,3])
-            #model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,stride=stride_size,dilation=dilation_size)
-            model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,dilation=dilation_size)
-            #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-            #weights=torch.tensor(weights, dtype=torch.float)
-            weights=torch.tensor([FLweight1,FLweight2], dtype=torch.float)
-
-            # fit the model to the train/valid fold given selected hyperparameter values in this trial
-            #learn=TSClassifier(X3d,Y2,splits=splits_kfold2,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-            learn=TSClassifier(X3d,Y2,splits=splits_kfold2,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-            
-            #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
-            learn.fit_one_cycle(epochs,lr_max=learning_rate_init)
-            print(learn.recorder.values[-1])
-            #return learn.recorder.values[-1][1] ## this returns the valid loss
-            return learn.recorder.values[-1][4] ## this returns the auc (5 is brier score)
-
-        # add batch_size as a hyperparameter
-        batch_size=trial.suggest_categorical('batch_size',[32,64,128])
-
-        # set random seed
-        Data_load.random_seed(randnum,True)
-        rng=np.random.default_rng(randnum)
-        torch.set_num_threads(18)
-        
-        # divide train data into 5 fold
-        fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-        fold.get_n_splits(Xtrainvalid,Ytrainvalid)
-        scores = []
-
-        # loop through each fold and fit hyperparameters
-        for train_idx, valid_idx in fold.split(Xtrainvalid,Ytrainvalid):
-            print("TRAIN:", train_idx, "VALID:",valid_idx)
-
-            # select train and validation data
-            Xtrain, Xvalid = Xtrainvalid[train_idx], Xtrainvalid[valid_idx]
-            Ytrain, Yvalid = Ytrainvalid[train_idx], Ytrainvalid[valid_idx]
-
-            #print(Counter(Ytrainvalid))
-            #print(Counter(Ytrain))
-            #print(Counter(Yvalid))
-
-            # get new splits according to this data
-            #splits_kfold=get_predefined_splits([Xtrain,Xvalid])
-            X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
-            
-            # standardise and one-hot the data
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
-
-            # prepare the data to go in the model
-            X3d=to3d(X_scaled)
-            tfms=[None,Categorize()]
-            dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
-
-            # set up the weightedrandom sampler
-            class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y2[splits_kfold2[0]])
-            sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
-            print(class_weights)
-
-            # prepare this data for the model (define batches etc)
-            dls=TSDataLoaders.from_dsets(
-                    dsets.train,
-                    dsets.valid,
-                    sampler=sampler,
-                    bs=batch_size,
-                    num_workers=0,
-                    shuffle=False,
-                    batch_tfms=(TSStandardize(by_var=True),),
-                    )
-            
-            # find valid_loss for this fold and these hyperparameters
-            trial_score= objective(trial)
-            scores.append(trial_score)
-
-        return np.mean(scores)
 
 
     return runtime,acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11
