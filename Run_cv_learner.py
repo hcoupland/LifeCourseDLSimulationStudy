@@ -50,7 +50,7 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
 
     # Giving the filepath for the output
     savename="".join([ name,"_",model_name,"_rand",str(int(randnum)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join(["/home/DIDE/smishra/Simulations/Results/outputCV_", savename, ".csv"])
+    filepathout="".join(["/home/DIDE/smishra/Simulations/Results/outputCVL_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
     #print(name)
     print(model_name)
@@ -129,8 +129,8 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
             # loop for fitting model with generic/pre-specified hyperparameters
             lr_max=1e-3
             batch_size=64
-            alpha=0.5
-            gamma=1.5
+            alpha=0.6
+            gamma=2.5
 
             # Fitting the model on train/test with pre-selected hyperparameters
             runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X,Y=Y,splits=splits,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
