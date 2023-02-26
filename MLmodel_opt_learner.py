@@ -830,7 +830,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         bs=batch_size,
         num_workers=0,
         shuffle=False,
-        batch_tfms=(TSStandardize(by_var=True),),
+        #batch_tfms=(TSStandardize(by_var=True),),
         )
 
     for i in range(10):
