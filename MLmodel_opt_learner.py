@@ -855,7 +855,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
     model = InceptionTimePlus(dls.vars, dls.c)
-    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[ReduceLROnPlateau()])
     learn.save('stage0')
 
     learn.fit_one_cycle(epochs, lr_max)
@@ -870,7 +870,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     #valid_dl=clf.dls.valid
     #acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
     valid_dl=learn.dls.valid
-    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
+    #acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
 
     #learn=TSClassifier(X3d,Y,splits=splits,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
 
@@ -920,7 +920,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # #                zero_norm=False, bn_1st=True, act=<class
     # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-    return runtime,acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11
+    return runtime, learn, valid_dl, X3d
 
 def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size):
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
@@ -1107,8 +1107,9 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #valid_dl=clf.dls.valid
     #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
     
-    acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
-    return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
+    #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
+    #return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
+    return runtime, learn, valid_dl, X3d
 
 def test_results(f_model,X_test,Y_test,valid_dl):
     # function to assess goodness-of-fit to test data
