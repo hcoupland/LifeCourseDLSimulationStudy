@@ -101,7 +101,7 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
 
 
         ## Set seed
-        random_seed(randnum, True)
+        Data_load.random_seed(randnum, True)
         rng = np.random.default_rng(randnum)
         torch.set_num_threads(18)
 
@@ -114,10 +114,10 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
                 test_size=0,
                 show_plot=False
                 )
-        Xtrainvalid90=Xtrainvalid[splits[0]]
-        Ytrainvalid90=Ytrainvalid[splits[0]]
-        Xtrainvalid10=Xtrainvalid[splits[1]]
-        Ytrainvalid10=Ytrainvalid[splits[1]]
+        Xtrainvalid90=Xtrainvalid[splits_9010[0]]
+        Ytrainvalid90=Ytrainvalid[splits_9010[0]]
+        Xtrainvalid10=Xtrainvalid[splits_9010[1]]
+        Ytrainvalid10=Ytrainvalid[splits_9010[1]]
 
         print(Counter(Ytrainvalid))
         print(Counter(Ytrainvalid90))
@@ -141,8 +141,10 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
                 del params[key]
        
             # Rerun the model on train/test with the selected hyperparameters
-            runtime, learn, valid_dl, X3d = MLmodel_opt_learner.model_block(arch=arch,X=Xtrainvalid,Y=Ytrainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
-            acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
+            runtime, learn, valid_dl = MLmodel_opt_learner.model_block(arch=arch,X=Xtrainvalid,Y=Ytrainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+            ## Need to scale X
+            X_scaled=Data_load.prep_data(X,splits)
+            acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
 
 
 
@@ -163,8 +165,8 @@ def All_run(name,model_name,Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
             gamma=4
 
             # Fitting the model on train/test with pre-selected hyperparameters
-            runtime, learn, valid_dl, X3d = MLmodel_opt_learner.model_block_nohype(arch=arch,X=Xtrainvalid,Y=Ytrainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
-            acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
+            runtime, learn, valid_dl = MLmodel_opt_learner.model_block_nohype(arch=arch,X=Xtrainvalid,Y=Ytrainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+            acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
 
             # Formatting and saving the output
             outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,lr_max,batch_size,alpha,gamma]

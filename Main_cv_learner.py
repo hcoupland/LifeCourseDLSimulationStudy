@@ -23,8 +23,18 @@ hype= "True"# sys.argv[6]
 savename="".join([ name,"_",model_name,"_rand",str(int(randnum2)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
 filepathlog="".join(["/home/DIDE/smishra/Simulations/Results/outputCVL_", savename, ".log"])
 
-logging.basicConfig(filename=filepathlog, filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+#logging.basicConfig(filename=filepathlog, filemode='w', format='%(name)s - %(levelname)s - %(message)s')
+print(filepathlog)
+logging.basicConfig(filename = filepathlog,
+                    level = logging.WARNING,
+                    format = '%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 
+logger = logging.getLogger("app_logger")
+logger.setLevel(logging.INFO)
+
+# Also log to console.
+console = logging.StreamHandler()
+logger.addHandler(console)
 
 
 ## Function to load in data and also obtain the train/test split

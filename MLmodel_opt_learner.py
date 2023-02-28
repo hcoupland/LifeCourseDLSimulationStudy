@@ -826,10 +826,10 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     dls=TSDataLoaders.from_dsets(
         dsets.train,
         dsets.valid,
-        sampler=sampler,
+        #sampler=sampler,
         bs=batch_size,
         num_workers=0,
-        shuffle=False,
+        #shuffle=False,
         #batch_tfms=(TSStandardize(by_var=True),),
         )
 
@@ -920,7 +920,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # #                zero_norm=False, bn_1st=True, act=<class
     # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-    return runtime, learn, valid_dl, X3d
+    return runtime, learn, valid_dl
 
 def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size):
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
@@ -1109,7 +1109,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     
     #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
     #return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
-    return runtime, learn, valid_dl, X3d
+    return runtime, learn, valid_dl
 
 def test_results(f_model,X_test,Y_test,valid_dl):
     # function to assess goodness-of-fit to test data
