@@ -1,7 +1,41 @@
+import importlib
+import fastai
+import tsai
+importlib.reload(fastai)
+importlib.reload(tsai)
+
+import random
+
+from collections import Counter
+
+import numpy as np
+import optuna
+import torch
+import torch.nn.functional as F
+
+from fastai.callback.tracker import EarlyStoppingCallback, ReduceLROnPlateau
+from fastai.data.transforms import Categorize
+from fastai.losses import BCEWithLogitsLossFlat, FocalLoss, FocalLossFlat
+from fastai.metrics import accuracy, BrierScore, F1Score, RocAucBinary
+from pytorch_lightning.utilities.seed import seed_everything
+from sklearn.model_selection import StratifiedKFold
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from tsai.data.validation import combine_split_data, get_splits
+from tsai.models.InceptionTimePlus import InceptionTimePlus
+from tsai.tslearner import TSClassifier
+
+device = torch.device('cuda' if torch.cuda.is_available else 'cpu')
+
+print(f'Device: {device}')
+
+seed = 42 # random.randint(0, 42)
+
+seed_everything(seed)
+
 ## script to control overal running of model
 
-import Data_load
-import Run_cv_learner
+import Data_load_neat as Data_load
+import Run_cv_learner_neat as Run_cv_learner
 #import pycaret_analysis
 
 import numpy as np

@@ -20,7 +20,7 @@ from torch.utils.data import WeightedRandomSampler
 from sklearn.metrics import roc_auc_score
 
 import timeit
-import Data_load
+import Data_load_neat as Data_load
 from fastai.vision.all import *
 from sklearn.utils.class_weight import compute_class_weight
 

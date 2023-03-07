@@ -15,9 +15,9 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
 import timeit
-import Data_load
-import LM_cv
-import MLmodel_opt_learner
+import Data_load_neat as Data_load
+import LM_cv_neat as LM_cv
+import MLmodel_opt_learner_neat as MLmodel_opt_learner
 import rpy2.rinterface
 
 def hyperparameter_optimise(model_name,Xtrainvalid,Ytrainvalid, epochs, randnum, num_optuna_trials):
