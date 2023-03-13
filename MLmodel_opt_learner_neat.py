@@ -33,6 +33,270 @@ import warnings
 warnings.filterwarnings('ignore')
 
 
+def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
+    # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
+
+    # the metrics outputted when fitting the model
+    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
+    
+    def objective_cv(trial):
+        # objective function enveloping the model objective function with cross-validation
+
+        def objective(trial):
+            # model objective function deciding values of hyperparameters so set ranges for each one that varies
+            learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
+            ESpatience=trial.suggest_categorical("ESpatience",[2,4,6])
+            alpha=trial.suggest_float("alpha",0.0,1.0)
+            gamma=trial.suggest_float("gamma",0.0,5.0)
+            FLweight1=alpha#trial.suggest_float("FLweight1",0,2)
+            FLweight2=1-alpha#num_out/(num_out-FLweight)#trial.suggest_float("FLweight2",1,100)
+            nf=trial.suggest_categorical('nf',[32,64,96,128])
+            dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
+            dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
+            kernel_size=trial.suggest_categorical('ks',[20,40,60])
+            dilation_size=trial.suggest_categorical('dilation',[1,2,3])
+            #stride_size=trial.suggest_categorical('stride',[1,2,3])
+            model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,dilation=dilation_size)
+            weights=torch.tensor([FLweight1,FLweight2], dtype=torch.float)
+
+            # fit the model to the train/valid fold given selected hyperparameter values in this trial
+            learn=TSClassifier(X3d,Y2,splits=splits_kfold2,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+            
+            #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
+            learn.fit_one_cycle(epochs,lr_max=learning_rate_init)
+            print(learn.recorder.values[-1])
+            #return learn.recorder.values[-1][1] ## this returns the valid loss
+            return learn.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+
+        # add batch_size as a hyperparameter
+        batch_size=trial.suggest_categorical('batch_size',[32,64,128])
+
+        # set random seed
+        Data_load.random_seed(randnum,True)
+        rng=np.random.default_rng(randnum)
+        torch.set_num_threads(18)
+        
+        # divide train data into 5 fold
+        fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        fold.get_n_splits(Xtrainvalid,Ytrainvalid)
+        scores = []
+
+        # loop through each fold and fit hyperparameters
+        for train_idx, valid_idx in fold.split(Xtrainvalid,Ytrainvalid):
+            print("TRAIN:", train_idx, "VALID:",valid_idx)
+
+            # select train and validation data
+            Xtrain, Xvalid = Xtrainvalid[train_idx], Xtrainvalid[valid_idx]
+            Ytrain, Yvalid = Ytrainvalid[train_idx], Ytrainvalid[valid_idx]
+
+            #print(Counter(Ytrainvalid))
+            #print(Counter(Ytrain))
+            #print(Counter(Yvalid))
+
+            # get new splits according to this data
+            #splits_kfold=get_predefined_splits([Xtrain,Xvalid])
+            X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
+            
+            # standardise and one-hot the data
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+
+            # prepare the data to go in the model
+            #X3d=to3d(X_scaled)
+            X3d=to3d(X2)
+            tfms=[None,Categorize()]
+            dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
+
+            # set up the weightedrandom sampler
+            class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y2[splits_kfold2[0]])
+            sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
+            print(class_weights)
+
+            # prepare this data for the model (define batches etc)
+            dls=TSDataLoaders.from_dsets(
+                    dsets.train,
+                    dsets.valid,
+                    sampler=sampler,
+                    bs=batch_size,
+                    num_workers=0,
+                    shuffle=False,
+                    batch_tfms=(TSStandardize(by_var=True),),
+                    )
+            
+            # find valid_loss for this fold and these hyperparameters
+            trial_score= objective(trial)
+            scores.append(trial_score)
+
+        return np.mean(scores)
+    
+    # set random seed
+    Data_load.random_seed(randnum,True)
+    rng=np.random.default_rng(randnum)
+    torch.set_num_threads(18)
+
+    # create optuna study
+    #study=optuna.create_study(direction='minimize',pruner=optuna.pruners.HyperbandPruner())
+    optsampler = TPESampler(seed=10)  # Make the sampler behave in a deterministic way.
+    study=optuna.create_study(direction='maximize',pruner=optuna.pruners.MedianPruner(),sampler=optsampler)
+    study.optimize(objective_cv,n_trials=num_optuna_trials,show_progress_bar=True)
+    
+    pruned_trials= [t for t in study.trials if t.state ==optuna.trial.TrialState.PRUNED]
+    complete_trials=[t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
+    
+    print("Study statistics: ")
+    print("  Number of finished trials: ", len(study.trials))
+    print("  Number of pruned trials: ", len(pruned_trials))
+    print("  Number of complete trials: ", len(complete_trials))
+
+    print("Best trial: ")
+    trial=study.best_trial
+    print("  Value: ", trial.value)
+    print(" Params: ")
+    for key, value in trial.params.items():
+        print("   {}:{}".format(key,value))
+
+    return trial
+
+
+
+
+
+# def objective_cv(trial):
+#     def objective(trial):
+#         # model objective function deciding values of hyperparameters so set ranges for each one that varies
+
+#         param_grid = {
+#             'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+#             'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+#             'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
+#             'ks': trial.suggest_categorical('ks', [20, 40, 60]),
+#             'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
+#         }
+
+#         alpha = trial.suggest_float("alpha", 0.0, 1.0)
+#         gamma = trial.suggest_float("gamma", 0.0, 5.0)
+
+#         weights = torch.tensor([alpha, 1-alpha]).float().cuda()
+
+#         learning_rate_init = 1e-3
+#         patience = trial.suggest_categorical("patience", [2, 4, 6])
+
+#         # fit the model to the train/valid fold given selected hyperparameter values in this trial
+#         #learn=TSClassifier(X3d,Y2,splits=splits_kfold2,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+#         learner = TSClassifier(
+#             X_combined,
+#             y_combined,
+#             bs=batch_size,
+#             splits=stratified_splits,
+#             arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
+#             arch_config=param_grid,
+#             metrics=metrics,
+#             loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
+#             verbose=True,
+#             cbs=[EarlyStoppingCallback(patience=patience), ReduceLROnPlateau()],
+#             device=device
+#         )
+
+#         # print(learner.model(torch.tensor(X_combined[:64, :, :]).cuda()).shape, torch.tensor(y_combined[:64]).shape)
+
+#         # assert False
+
+#         print(learner.summary())
+
+#         #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
+#         learner.fit_one_cycle(n_epochs, lr_max=learning_rate_init)
+#         print(learner.recorder.values[-1])
+#         #return learn.recorder.values[-1][1] ## this returns the valid loss
+#         return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+
+#     scores = []
+
+#     batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
+
+#     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+
+#     scaler = StandardScaler()
+
+#     for train_idx, valid_idx in skf.split(X_train, y_train):
+#         # Split in train and validation
+#         X_train_, X_valid = X_train[train_idx], X_train[valid_idx]
+#         y_train_, y_valid = y_train[train_idx], y_train[valid_idx]
+        
+        
+#         # Standardize the 0th dimension
+#         # No need to one-hot the other dimensions? They're already binary
+#         X_train0 = np.expand_dims(
+#             scaler.fit_transform(np.squeeze(X_train_[:, 0, :])),
+#             1
+#         )
+#         X_valid0 = np.expand_dims(
+#             scaler.transform(np.squeeze(X_valid[:, 0, :])),
+#             1
+#         )
+
+#         X_train_ = np.concatenate([X_train0, X_train_[:, 1:, :]], axis=1)
+#         X_valid = np.concatenate([X_valid0, X_valid[:, 1:, :]], axis=1)
+
+#         print(X_train_.shape, X_valid.shape, y_train_.shape, y_valid.shape)
+#         print(Counter(y_train_.flatten()), Counter(y_valid.flatten()))
+
+#         X_combined, y_combined, stratified_splits = combine_split_data(
+#             [X_train_, X_valid], 
+#             [y_train_, y_valid]
+#         )
+
+#         # Pass to GPU
+#         X_combined = torch.tensor(X_combined).cuda()
+
+#         y_combined = torch.tensor(y_combined).int().cuda()
+
+#         # y_combined = F.one_hot(
+#         #     torch.tensor(y_combined.astype(np.int64)).squeeze(), num_classes=2
+#         # ).float().cuda()
+
+#         # print(X_combined.shape, y_combined.shape)
+
+#         # Perform trial
+#         trial_score = objective(trial)
+
+#         scores.append(trial_score)
+
+#     return np.mean(scores)
+
+# # Split data
+# splits = get_splits(
+#     y,
+#     valid_size=0.0,
+#     test_size=0.2,
+#     stratify=True,
+#     shuffle=True,
+#     show_plot=False
+# )
+
+# X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
+# y_train, y_test = y[splits[0]], y[splits[-1]]
+
+# print(Counter(y.flatten()), Counter(y_train.flatten()), Counter(y_test.flatten()))
+
+# num_optuna_trials = 3
+
+# n_epochs = 10
+
+# metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
+
+# study = optuna.create_study(
+#     direction='maximize',
+#     pruner=optuna.pruners.MedianPruner(),
+#     sampler=optuna.samplers.TPESampler(seed=seed)
+# )
+
+# study.optimize(
+#     objective_cv,
+#     n_trials=num_optuna_trials,
+#     show_progress_bar=True
+# )
+
+
+
 def hypersearchInceptionTime(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
     # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
 
@@ -102,10 +366,11 @@ def hypersearchInceptionTime(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_t
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
             
             # standardise and one-hot the data
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
 
             # prepare the data to go in the model
-            X3d=to3d(X_scaled)
+            #X3d=to3d(X_scaled)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -221,10 +486,10 @@ def hypersearchResCNN(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
             
             # standardise and one-hot the data
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
 
             # prepare the data to go in the model
-            X3d=to3d(X_scaled)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -453,8 +718,8 @@ def hypersearchMLSTMFCN(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials
 
             splits_kfold=get_predefined_splits([Xtrain,Xvalid])
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
-            X3d=to3d(X_scaled)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -551,8 +816,8 @@ def hypersearchResNet(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
 
             splits_kfold=get_predefined_splits([Xtrain,Xvalid])
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
-            X3d=to3d(X_scaled)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -651,8 +916,8 @@ def hypersearchTCN(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
 
             splits_kfold=get_predefined_splits([Xtrain,Xvalid])
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
-            X3d=to3d(X_scaled)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -742,8 +1007,8 @@ def hypersearchXCM(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials):
 
             splits_kfold=get_predefined_splits([Xtrain,Xvalid])
             X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
-            X_scaled=Data_load.prep_data(X2,splits_kfold2)
-            X3d=to3d(X_scaled)
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+            X3d=to3d(X2)
             tfms=[None,Categorize()]
             dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
 
@@ -806,7 +1071,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     weights=torch.tensor([alpha,1-alpha], dtype=torch.float)
     
     # standardize and one-hot the data
-    X_scaled=Data_load.prep_data(X,splits)
+    #X_scaled=Data_load.prep_data(X,splits)
 
     # prep the data for the model
     print(X_scaled.shape)
@@ -824,7 +1089,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(np.std(Y[splits[1]]))
 
     # prep the data for the model
-    X3d=to3d(X_scaled)
+    X3d=to3d(X)
     tfms=[None,Categorize()]
     dsets = TSDatasets(X3d, Y,tfms=tfms, splits=splits,inplace=True)
     
@@ -942,16 +1207,16 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     ESpatience=2
 
     # scale and one-hot the data
-    X_scaled=Data_load.prep_data(X,splits)
+    #X_scaled=Data_load.prep_data(X,splits)
 
     # prep the data for the model
 
-    print(X_scaled.shape)
+    print(X.shape)
     print(Y.shape)
-    print(np.mean(X_scaled[splits[0]]))
-    print(np.mean(X_scaled[splits[1]]))
-    print(np.std(X_scaled[splits[0]]))
-    print(np.std(X_scaled[splits[1]]))
+    print(np.mean(X[splits[0]]))
+    print(np.mean(X[splits[1]]))
+    print(np.std(X[splits[0]]))
+    print(np.std(X[splits[1]]))
     #print(dir(learn))
 
     print(np.mean(Y[splits[0]]))
@@ -966,7 +1231,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     tfms=[None,[Categorize()]]
     #dsets = TSDatasets(X3d, Y,tfms=tfms, splits=splits,inplace=True)
-    dsets = TSDatasets(X_scaled, Y,tfms=tfms, splits=splits)
+    dsets = TSDatasets(X, Y,tfms=tfms, splits=splits)
 
     # set up the weighted random sampler
     class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
@@ -1148,7 +1413,7 @@ def test_results(f_model,X_test,Y_test):
     print(valid_dl.vars)
 
     valid_probas, valid_targets, valid_preds = f_model.get_preds(dl=valid_dl, with_decoded=True,save_preds=None,save_targs=None)
-    print(valid_probas, valid_targets, valid_preds)
+    #print(valid_probas, valid_targets, valid_preds)
     print((valid_targets == valid_preds).float().mean())
 
     # obtain probability scores, predicted values and targets
@@ -1162,7 +1427,7 @@ def test_results(f_model,X_test,Y_test):
     print(next(iter(test_dl)))
 
     test_probas, test_targets,test_preds=f_model.get_preds(dl=test_dl,with_decoded=True,save_preds=None,save_targs=None)
-    print(test_probas, test_targets, test_preds)
+    #print(test_probas, test_targets, test_preds)
     print(f'accuracy: {skm.accuracy_score(test_targets, test_preds):10.6f}')
 
     # get the min, max and median of probability scores for each class

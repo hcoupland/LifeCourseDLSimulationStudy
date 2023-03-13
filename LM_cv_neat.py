@@ -70,7 +70,7 @@ def metrics_bin(pred, y_test):
     print("{:<40} {:.6f}".format("Predicted 1 when actually 1:", LR11))
     return acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11
 
-def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y, randnum=8):
+def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -78,12 +78,12 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y, randnum=
     rng = np.random.default_rng(randnum)
 
     # sclae and one-hot the data
-    X_scaled=Data_load.prep_data(X, splits)
-    XStrainvalid=X_scaled[splits[0]]
-    XStest=X_scaled[splits[1]]
+    #X_scaled=Data_load.prep_data(X, splits)
+    #XStrainvalid=X_scaled[splits[0]]
+    #XStest=X_scaled[splits[1]]
 
     # flatten the data
-    X_LRtrain, X_LRtest = LM_func(XStrainvalid, XStest)
+    X_LRtrain, X_LRtest = LM_func(Xtrainvalid, Xtest)
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()

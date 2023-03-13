@@ -147,16 +147,22 @@ def Standard_func(X,splits):
 
 def load_data(name):
     ## function to load all the data from the filepath
+    filepath="/home/DIDE/smishra/Simulations/input_data/"
+    X_raw = np.load("".join([filepath,name, "_X.npy"])).astype(np.float32)
+
+    y_raw = np.load("".join([filepath,name, "_YH.npy"]))
+
+    y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
+
+    print(X_raw.shape, y_raw.shape, y_test.shape)
 
     #filepath="/home/fkmk708805/data/workdata/708805/helen/Proc_data/"
-    filepath="/home/DIDE/smishra/Simulations/input_data/"
-    X = np.squeeze(np.load("".join([filepath,name, "_X.npy"])))
+
     Y_raw = np.squeeze(np.load("".join([filepath,name, "_YH.npy"])))
     Y = Y_raw[:, np.shape(Y_raw)[1] - 1]
-    X = X.astype(float)
-    print(X.shape, Y.shape)
+    print(Y.shape)
 
-    return X, Y
+    return X_raw, Y
 
 
 def prep_data(X, splits):
@@ -174,17 +180,13 @@ def prep_data(X, splits):
     X_scaled=np.concatenate([Xoh_out,Xstnd_out],axis=1)
     return X_scaled
 
-def split_data(name,randnum):
+def split_data(X, Y,randnum):
     # function to load the data and do the original train/test split
-    print(name)
 
     ## Set seed
     random_seed(randnum, True)
     rng = np.random.default_rng(randnum)
     torch.set_num_threads(18)
-
-    # load the data
-    X, Y = load_data(name)
 
     #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
 
@@ -197,16 +199,14 @@ def split_data(name,randnum):
             test_size=0,
             show_plot=False
             )
-    Xtrainvalid=X[splits[0]]
-    Ytrainvalid=Y[splits[0]]
-    Xtest=X[splits[1]]
-    Ytest=Y[splits[1]]
+    X_trainvalid, X_test = X[splits[0]], X[splits[1]]
+    Y_trainvalid, Y_test = Y[splits[0]], Y[splits[1]]
 
-    print(Counter(Y))
-    print(Counter(Ytrainvalid))
-    print(Counter(Ytest))
+    print(Counter(Y), Counter(Y_trainvalid), Counter(Y_test))
 
-    return Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y
+    #print(Counter(y.flatten()), Counter(y_train.flatten()), Counter(y_test.flatten())) ## if Y has shape (10000,1) instead of (10000,)
+
+    return X_trainvalid, Y_trainvalid, X_test, Y_test, splits
  
     #X_scaled=prep_data(X,splits)
     

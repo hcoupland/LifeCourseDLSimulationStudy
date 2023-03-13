@@ -38,9 +38,7 @@ import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 #import pycaret_analysis
 
-import numpy as np
 import sys
-
 import logging    # first of all import the module
 
 
@@ -71,8 +69,17 @@ console = logging.StreamHandler()
 logger.addHandler(console)
 
 
-## Function to load in data and also obtain the train/test split
-Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y = Data_load.split_data(name=name,randnum=randnum1)
+print(name)
+## Function to load in data
+X_raw, y_raw = Data_load.load_data(name=name)
+
+## Function to obtain the train/test split
+X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum1)
+
+
+## Now scale all the data for ease (can fix this later)
+X_scaled=Data_load.prep_data(X_raw,splits)
+X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
 
 print('Data generated')
 
@@ -80,7 +87,7 @@ print('Data generated')
 
 
 ## Runs hyperparameter and fits those models required
-output=Run_cv_learner.All_run(name=name,model_name=model_name,Xtrainvalid=Xtrainvalid, Ytrainvalid=Ytrainvalid, Xtest=Xtest, Ytest=Ytest, splits=splits, X=X, Y=Y, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
 
 
 
