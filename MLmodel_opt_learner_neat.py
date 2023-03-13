@@ -1074,12 +1074,12 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     #X_scaled=Data_load.prep_data(X,splits)
 
     # prep the data for the model
-    print(X_scaled.shape)
+    print(X.shape)
     print(Y.shape)
-    print(np.mean(X_scaled[splits[0]]))
-    print(np.mean(X_scaled[splits[1]]))
-    print(np.std(X_scaled[splits[0]]))
-    print(np.std(X_scaled[splits[1]]))
+    print(np.mean(X[splits[0]]))
+    print(np.mean(X[splits[1]]))
+    print(np.std(X[splits[0]]))
+    print(np.std(X[splits[1]]))
     #print(dir(learn))
 
     print(np.mean(Y[splits[0]]))
@@ -1206,18 +1206,13 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     weights=torch.tensor(FLweights, dtype=torch.float)
     ESpatience=2
 
-    # scale and one-hot the data
-    #X_scaled=Data_load.prep_data(X,splits)
-
     # prep the data for the model
-
     print(X.shape)
     print(Y.shape)
     print(np.mean(X[splits[0]]))
     print(np.mean(X[splits[1]]))
     print(np.std(X[splits[0]]))
     print(np.std(X[splits[1]]))
-    #print(dir(learn))
 
     print(np.mean(Y[splits[0]]))
     print(np.mean(Y[splits[1]]))
@@ -1225,13 +1220,11 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(np.std(Y[splits[0]]))
     print(np.std(Y[splits[1]]))
     #X3d=to3d(X_scaled)
-    #print(X3d.shape)
     print(Y.shape)
 
 
     tfms=[None,[Categorize()]]
-    #dsets = TSDatasets(X3d, Y,tfms=tfms, splits=splits,inplace=True)
-    dsets = TSDatasets(X, Y,tfms=tfms, splits=splits)
+    dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
 
     # set up the weighted random sampler
     class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
@@ -1243,10 +1236,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(len(wgts))
     print(len(dsets))
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
-
-    #print(dir(dsets))
-    #print(dsets.train)
-    #print(dsets.valid)
 
     #weights=torch.tensor(class_weights/np.sum(class_weights), dtype=torch.float)
     #print(weights)
@@ -1289,14 +1278,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #wgts = [1/count[dset.vocab[label]] for img, label in dset.train]
     #len(wgts)
 
-    #del dls
-
-    #set_seed(randnum)                                                                                                    3ed
-    #dls = pneumothorax.dataloaders(df.values, bs=32, num_workers=0, dl_type=WeightedDL, wgts=wgts)
-
-    #for i in range(10):
-    #    x,y = dls.one_batch()
-    #    print(sum(y)/len(y))
 
     # fit the model to the train/test data
 
@@ -1344,7 +1325,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     model = InceptionTimePlus(dls.vars, dls.c)
     learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
     learn.save('stage0')
-    #print(dir(learn))
+
     #learn.load('stage0')
     #learn.lr_find()
 
@@ -1404,7 +1385,7 @@ def test_results(f_model,X_test,Y_test):
 
     valid_dl=f_model.dls.valid
     b = next(iter(valid_dl))
-    print(b)   
+    #print(b)   
 
 
     # function to assess goodness-of-fit to test data
@@ -1414,7 +1395,7 @@ def test_results(f_model,X_test,Y_test):
 
     valid_probas, valid_targets, valid_preds = f_model.get_preds(dl=valid_dl, with_decoded=True,save_preds=None,save_targs=None)
     #print(valid_probas, valid_targets, valid_preds)
-    print((valid_targets == valid_preds).float().mean())
+    #print((valid_targets == valid_preds).float().mean())
 
     # obtain probability scores, predicted values and targets
     test_ds=valid_dl.dataset.add_test(X_test,Y_test)
@@ -1424,11 +1405,11 @@ def test_results(f_model,X_test,Y_test):
     print(test_dl.len)
     print(test_dl.vars)
 
-    print(next(iter(test_dl)))
+    #print(next(iter(test_dl)))
 
     test_probas, test_targets,test_preds=f_model.get_preds(dl=test_dl,with_decoded=True,save_preds=None,save_targs=None)
     #print(test_probas, test_targets, test_preds)
-    print(f'accuracy: {skm.accuracy_score(test_targets, test_preds):10.6f}')
+    #print(f'accuracy: {skm.accuracy_score(test_targets, test_preds):10.6f}')
 
     # get the min, max and median of probability scores for each class
     where1s=np.where(Y_test==1)
@@ -1443,7 +1424,7 @@ def test_results(f_model,X_test,Y_test):
     #interp.plot_confusion_matrix()
 
     interp = ClassificationInterpretation.from_learner(f_model)
-    print(interp.most_confused(min_val=3))
+    #print(interp.most_confused(min_val=3))
 
     ## get the various metrics for model fit
     acc=skm.accuracy_score(test_targets,test_preds)

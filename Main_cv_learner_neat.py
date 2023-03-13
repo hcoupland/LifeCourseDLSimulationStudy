@@ -81,13 +81,29 @@ X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_ra
 X_scaled=Data_load.prep_data(X_raw,splits)
 X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
 
+
+print(np.mean(X_trainvalid))
+print(np.mean(X_test))
+print(np.std(X_trainvalid))
+print(np.std(X_test))
+print(np.mean(X_trainvalid_s))
+print(np.mean(X_test_s))
+print(np.std(X_trainvalid_s))
+print(np.std(X_test_s))
+
+print(np.mean(Y_trainvalid))
+print(np.mean(Y_test))
+print(np.std(Y_trainvalid))
+print(np.std(Y_test))
+
 print('Data generated')
 
 #pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
 
 
 ## Runs hyperparameter and fits those models required
-output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+#output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid, Y_trainvalid=Y_trainvalid, X_test=X_test, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
 
 
 

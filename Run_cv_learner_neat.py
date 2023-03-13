@@ -161,8 +161,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum=
             # loop for fitting model with generic/pre-specified hyperparameters
             lr_max=1e-3
             batch_size=64
-            alpha=0.2
-            gamma=4
+            alpha=0.5
+            gamma=3
 
             # Fitting the model on train/test with pre-selected hyperparameters
             runtime, learn = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
