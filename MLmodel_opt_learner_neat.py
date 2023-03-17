@@ -1207,21 +1207,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     ESpatience=2
 
     # prep the data for the model
-    print(X.shape)
-    print(Y.shape)
-    print(np.mean(X[splits[0]]))
-    print(np.mean(X[splits[1]]))
-    print(np.std(X[splits[0]]))
-    print(np.std(X[splits[1]]))
-
-    print(np.mean(Y[splits[0]]))
-    print(np.mean(Y[splits[1]]))
-
-    print(np.std(Y[splits[0]]))
-    print(np.std(Y[splits[1]]))
-    #X3d=to3d(X_scaled)
-    print(Y.shape)
-
 
     tfms=[None,[Categorize()]]
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
@@ -1236,10 +1221,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(len(wgts))
     print(len(dsets))
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
-
-    #weights=torch.tensor(class_weights/np.sum(class_weights), dtype=torch.float)
-    #print(weights)
-    # set up batches etc
 
     Data_load.random_seed(randnum,True)
     rng=np.random.default_rng(randnum)
@@ -1257,43 +1238,17 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     for i in range(10):
         x,y = dls.one_batch()
         print(sum(y)/len(y))
-    ## this shows not 50% classes
-    
-    #del dls
+
 
     #Data_load.random_seed(randnum,True)
     #rng=np.random.default_rng(randnum)
 
     #dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
-    #print(dls)
-
-    #for i in range(10):
-    #    x,y = dls.one_batch()
-    #    print(sum(y)/len(y))
-    #    ## this shows not 50% classes
-
 
 
     #count = Counter(labels)
     #wgts = [1/count[dset.vocab[label]] for img, label in dset.train]
     #len(wgts)
-
-
-    # fit the model to the train/test data
-
-    #print(dls.train_ds)
-    #print(dls.valid_ds)
-    
-    #train_features, train_labels = next(iter(dls.train_ds))
-    #print(f"Feature batch shape: {train_features.size()}")
-    #print(f"Labels batch shape: {train_labels.size()}")
-
-    #img = train_features[0].squeeze()
-    #for i in range(0,17):
-    #    print(img[i].item())
-    #label = train_labels.item()
-    #print(f"Y: {label}")
-    #print(dir(dls))
     
     print(dls.c)
     print(dls.len)
@@ -1380,6 +1335,56 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
     #return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
     return runtime, learn
+
+
+
+
+# param_list = ['nf', 'fc_dropout', 'conv_dropout', 'ks', 'dilation']
+
+# scaler = StandardScaler()
+
+# X_train_final0 = np.expand_dims(
+#     scaler.fit_transform(np.squeeze(X_train[:, 0, :])),
+#     1
+# )
+
+# X_test0 = np.expand_dims(
+#     scaler.transform(np.squeeze(X_test[:, 0, :])),
+#     1
+# )
+
+# X_train_final = np.concatenate([X_train_final0, X_train[:, 1:, :]], axis=1)
+# X_test = np.concatenate([X_test0, X_test[:, 1:, :]], axis=1)
+
+# X_combined, y_combined, stratified_splits = combine_split_data(
+#     [X_train_final, X_test], 
+#     [y_train, y_test]
+# )
+
+# alpha = study.best_params['alpha']
+
+# gamma = study.best_params['gamma']
+
+# weights = torch.tensor([alpha, 1-alpha]).float().cuda()
+
+# learner = TSClassifier(
+#     X_combined,
+#     y_combined,
+#     bs=study.best_params['batch_size'],
+#     splits=stratified_splits,
+#     arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
+#     arch_config={k: v for (k, v) in study.best_params.items() if k in param_list},
+#     metrics=metrics,
+#     loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
+#     verbose=True,
+#     cbs=[EarlyStoppingCallback(patience=study.best_params['patience']), ReduceLROnPlateau()],
+#     device=device
+# )
+
+# learner.fit_one_cycle(1, 1e-3)
+
+
+
 
 def test_results(f_model,X_test,Y_test):
 
