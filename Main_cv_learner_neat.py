@@ -50,7 +50,7 @@ randnum2=5#int(sys.argv[3])
 epochs=2#int(sys.argv[4])#2#10
 randnum1=6
 num_optuna_trials =2# int(sys.argv[5])#2#100
-hype= "False"# sys.argv[6]
+hype= "True"# sys.argv[6]
 
 savename="".join([ name,"_",model_name,"_rand",str(int(randnum2)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
 filepathlog="".join(["/home/DIDE/smishra/Simulations/Results/outputCVL_", savename, ".log"])
@@ -75,6 +75,23 @@ X_raw, y_raw = Data_load.load_data(name=name)
 
 ## Function to obtain the train/test split
 X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum1)
+
+## neil code
+# # Split data
+# splits = get_splits(
+#     y,
+#     valid_size=0.0,
+#     test_size=0.2,
+#     stratify=True,
+#     shuffle=True,
+#     show_plot=False
+# )
+
+# X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
+# y_train, y_test = y[splits[0]], y[splits[-1]]
+
+# print(Counter(y.flatten()), Counter(y_train.flatten()), Counter(y_test.flatten()))
+
 
 
 ## Now scale all the data for ease (can fix this later)

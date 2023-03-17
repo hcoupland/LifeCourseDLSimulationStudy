@@ -55,77 +55,75 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     def objective_cv(trial):
         # objective function enveloping the model objective function with cross-validation
 
-
         def objective(trial):
 
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
             ESpatience=trial.suggest_categorical("ESpatience",[2,4,6])
             alpha=trial.suggest_float("alpha",0.0,1.0)
             gamma=trial.suggest_float("gamma",0.0,5.0)
-            FLweight1=alpha
-            FLweight2=1-alpha
-            #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-            #weights=torch.tensor(weights, dtype=torch.float)
-            weights=torch.tensor([alpha,1-alpha].float().cuda())
+            # weights=torch.tensor([alpha,1-alpha].float().cuda())
+            weights=torch.tensor([alpha,1-alpha],dtype=float)
 
             if model_name=="MLSTMFCN":
-                arch=MLSTM_FCNPlus
-                conv_layers=trial.suggest_categorical(name='conv_layers', choices=combinations)
-                dropout_rate1 = trial.suggest_float('cell_dropout',0.0,1.0)
-                dropout_rate2 = trial.suggest_float('rnn_dropout',0.0,1.0)
-                dropout_rate3 = trial.suggest_float('fc_dropout',0.0,1.0)
-                kss=trial.suggest_categorical(name='kss', choices=kscombinations)
-                hidden_sizes=trial.suggest_categorical('hidden_size',[60,80,100,120])
-                rnnlayer_size=trial.suggest_categorical('rnn_layers',[1,2,3])
-                model=dict(rnn_layers=rnnlayer_size,conv_layers=conv_layers,fc_dropout=dropout_rate3,rnn_dropout=dropout_rate2,cell_dropout=dropout_rate1,kss=kss,hidden_size=hidden_sizes)
+                arch=MLSTM_FCNPlus(c_in=X_combined.shape[1], c_out=2)
+                param_grid = {
+                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
+                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'cell_dropout': trial.suggest_float('cell_dropout', 0.0, 1.0),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
+                }
                 
 
             if model_name=="LSTMFCN":
-                arch=LSTM_FCNPlus
-                conv_layers=trial.suggest_categorical(name='conv_layers', choices=combinations)
-                dropout_rate1 = trial.suggest_float('cell_dropout',0.0,1.0)
-                dropout_rate2 = trial.suggest_float('rnn_dropout',0.0,1.0)
-                dropout_rate3 = trial.suggest_float('fc_dropout',0.0,1.0)
-                kss=trial.suggest_categorical(name='kss', choices=kscombinations)
-                hidden_sizes=trial.suggest_categorical('hidden_size',[60,80,100,120])
-                rnnlayer_size=trial.suggest_categorical('rnn_layers',[1,2,3])
-                model=dict(rnn_layers=rnnlayer_size,conv_layers=conv_layers,fc_dropout=dropout_rate3,rnn_dropout=dropout_rate2,cell_dropout=dropout_rate1,kss=kss,hidden_size=hidden_sizes)
+                arch=LSTM_FCNPlus(c_in=X_combined.shape[1], c_out=2)
+                param_grid = {
+                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
+                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'cell_dropout': trial.suggest_float('cell_dropout', 0.0, 1.0),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
+                }
 
         
             if model_name=="TCN":
-                arch=TCN
-                dropout_rate1 = trial.suggest_float('fc_dropout',0.0,1.0)
-                dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
-                kernel_size=trial.suggest_categorical('ks',[5,7,9])
-                ks=trial.suggest_categorical(name='layers', choices=kstcombinations)
-                model=dict(layers=ks,fc_dropout=dropout_rate1,ks=kernel_size,conv_dropout=dropout_rate2)
+                arch=TCN(c_in=X_combined.shape[1], c_out=2)
+                param_grid = {
+                    'ks': trial.suggest_categorical('ks', [5,7,9]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
+                    'layers': trial.suggest_categorical('layers', choices=kstcombinations),
+                }
   
 
             if model_name=="XCM":
-                arch=XCMPlus
-                num_filters=trial.suggest_categorical('nf',[32,64,96,128])
-                dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
-                model=dict(nf=num_filters,fc_dropout=dropout_rate)
+                arch=XCMPlus(c_in=X_combined.shape[1], c_out=2)
+                param_grid = {
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                }
+                
   
-
             if model_name=="ResCNN":
-                arch=ResCNN
-                model=dict()
+                arch=ResCNN(c_in=X_combined.shape[1], c_out=2)
+                param_grid=dict()
        
 
             if model_name=="ResNet":
-                arch=ResNetPlus
-                num_filters=trial.suggest_categorical('nf',[32,64,96,128])
-                dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
-                ks=trial.suggest_categorical(name='ks', choices=kscombinations)
-                model=dict(nf=num_filters,fc_dropout=dropout_rate,ks=ks)
+                arch=ResNetPlus(c_in=X_combined.shape[1], c_out=2)
+                param_grid = {
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'ks': trial.suggest_categorical('ks', choices=kscombinations),
+                }
 
 
             if model_name=="InceptionTime":
-                arch=InceptionTimePlus
-                
-
-
+                arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
@@ -135,23 +133,12 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 }
 
 
-                
-                # nf=trial.suggest_categorical('nf',[32,64,96,128])
-                # dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
-                # dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
-                # kernel_size=trial.suggest_categorical('ks',[20,40,60])
-                # dilation_size=trial.suggest_categorical('dilation',[1,2,3])
-                #stride_size=trial.suggest_categorical('stride',[1,2,3])
-                #model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,dilation=dilation_size)
-
-            learner=TSClassifier(X3d,Y2,splits=splits_kfold2,arch=arch,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])    
-            
             learner = TSClassifier(
                 X_combined,
                 y_combined,
                 bs=batch_size,
                 splits=stratified_splits,
-                arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
+                arch=arch,#InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
                 arch_config=param_grid,
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
@@ -167,22 +154,23 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #return learn.recorder.values[-1][1] ## this returns the valid loss
             return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
 
+        scores = []
 
         # add batch_size as a hyperparameter
         batch_size=trial.suggest_categorical('batch_size',[32,64,128])
 
-        # set random seed
-        Data_load.random_seed(randnum,True)
-        rng=np.random.default_rng(randnum)
-        torch.set_num_threads(18)
+        # # set random seed
+        # Data_load.random_seed(randnum,True)
+        # rng=np.random.default_rng(randnum)
+        # torch.set_num_threads(18)
         
         # divide train data into 5 fold
-        fold = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-        fold.get_n_splits(Xtrainvalid,Ytrainvalid)
-        scores = []
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        skf.get_n_splits(Xtrainvalid,Ytrainvalid)
+        scaler=StandardScaler()
 
         # loop through each fold and fit hyperparameters
-        for train_idx, valid_idx in fold.split(Xtrainvalid,Ytrainvalid):
+        for train_idx, valid_idx in skf.split(Xtrainvalid,Ytrainvalid):
             print("TRAIN:", train_idx, "VALID:",valid_idx)
 
             # select train and validation data
@@ -193,21 +181,43 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #print(Counter(Ytrain))
             #print(Counter(Yvalid))
 
+            #         # Standardize the 0th dimension
+    #         # No need to one-hot the other dimensions? They're already binary
+    #         X_train0 = np.expand_dims(
+    #             scaler.fit_transform(np.squeeze(X_train_[:, 0, :])),
+    #             1
+    #         )
+    #         X_valid0 = np.expand_dims(
+    #             scaler.transform(np.squeeze(X_valid[:, 0, :])),
+    #             1
+    #         )
+
+    #         X_train_ = np.concatenate([X_train0, X_train_[:, 1:, :]], axis=1)
+    #         X_valid = np.concatenate([X_valid0, X_valid[:, 1:, :]], axis=1)
+
+    #         print(X_train_.shape, X_valid.shape, y_train_.shape, y_valid.shape)
+    #         print(Counter(y_train_.flatten()), Counter(y_valid.flatten()))
+
             # get new splits according to this data
             #splits_kfold=get_predefined_splits([Xtrain,Xvalid])
-            X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
+            #X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
+
+            X_combined, y_combined, stratified_splits = combine_split_data(
+                [Xtrain, Xvalid], 
+                [Ytrain, Yvalid]
+            )
             
             # standardise and one-hot the data
             #X_scaled=Data_load.prep_data(X2,splits_kfold2)
 
             # prepare the data to go in the model
             #X3d=to3d(X_scaled)
-            X3d=to3d(X2)
+            #X3d=to3d(X2)
             tfms=[None,Categorize()]
-            dsets = TSDatasets(X3d, Y2,tfms=tfms, splits=splits_kfold2,inplace=True)
+            dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
 
             # set up the weightedrandom sampler
-            class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y2[splits_kfold2[0]])
+            class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=y_combined[stratified_splits[0]])
             sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
             print(class_weights)
 
@@ -221,71 +231,23 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     shuffle=False,
                     batch_tfms=(TSStandardize(by_var=True),),
                     )
+
+            #         # Pass to GPU
+        #         X_combined = torch.tensor(X_combined).cuda()
+
+        #         y_combined = torch.tensor(y_combined).int().cuda()
+
+        #         # y_combined = F.one_hot(
+        #         #     torch.tensor(y_combined.astype(np.int64)).squeeze(), num_classes=2
+        #         # ).float().cuda()
+
+        #         # print(X_combined.shape, y_combined.shape)
             
             # find valid_loss for this fold and these hyperparameters
             trial_score= objective(trial)
             scores.append(trial_score)
 
         return np.mean(scores)
-
-
-# def objective_cv(trial):
-#     
-
-#     scores = []
-
-#     batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-
-#     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
-
-#     scaler = StandardScaler()
-
-#     for train_idx, valid_idx in skf.split(X_train, y_train):
-#         # Split in train and validation
-#         X_train_, X_valid = X_train[train_idx], X_train[valid_idx]
-#         y_train_, y_valid = y_train[train_idx], y_train[valid_idx]
-        
-        
-#         # Standardize the 0th dimension
-#         # No need to one-hot the other dimensions? They're already binary
-#         X_train0 = np.expand_dims(
-#             scaler.fit_transform(np.squeeze(X_train_[:, 0, :])),
-#             1
-#         )
-#         X_valid0 = np.expand_dims(
-#             scaler.transform(np.squeeze(X_valid[:, 0, :])),
-#             1
-#         )
-
-#         X_train_ = np.concatenate([X_train0, X_train_[:, 1:, :]], axis=1)
-#         X_valid = np.concatenate([X_valid0, X_valid[:, 1:, :]], axis=1)
-
-#         print(X_train_.shape, X_valid.shape, y_train_.shape, y_valid.shape)
-#         print(Counter(y_train_.flatten()), Counter(y_valid.flatten()))
-
-#         X_combined, y_combined, stratified_splits = combine_split_data(
-#             [X_train_, X_valid], 
-#             [y_train_, y_valid]
-#         )
-
-#         # Pass to GPU
-#         X_combined = torch.tensor(X_combined).cuda()
-
-#         y_combined = torch.tensor(y_combined).int().cuda()
-
-#         # y_combined = F.one_hot(
-#         #     torch.tensor(y_combined.astype(np.int64)).squeeze(), num_classes=2
-#         # ).float().cuda()
-
-#         # print(X_combined.shape, y_combined.shape)
-
-#         # Perform trial
-#         trial_score = objective(trial)
-
-#         scores.append(trial_score)
-
-#     return np.mean(scores)
-
 
     
     # set random seed
@@ -296,8 +258,16 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     # create optuna study
     #study=optuna.create_study(direction='minimize',pruner=optuna.pruners.HyperbandPruner())
     optsampler = TPESampler(seed=10)  # Make the sampler behave in a deterministic way.
-    study=optuna.create_study(direction='maximize',pruner=optuna.pruners.MedianPruner(),sampler=optsampler)
-    study.optimize(objective_cv,n_trials=num_optuna_trials,show_progress_bar=True)
+    study=optuna.create_study(
+        direction='maximize',
+        pruner=optuna.pruners.MedianPruner(),
+        sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        )
+    study.optimize(
+        objective_cv,
+        n_trials=num_optuna_trials,
+        show_progress_bar=True
+        )
     
     pruned_trials= [t for t in study.trials if t.state ==optuna.trial.TrialState.PRUNED]
     complete_trials=[t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
@@ -315,53 +285,6 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         print("   {}:{}".format(key,value))
 
     return trial
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # Split data
-# splits = get_splits(
-#     y,
-#     valid_size=0.0,
-#     test_size=0.2,
-#     stratify=True,
-#     shuffle=True,
-#     show_plot=False
-# )
-
-# X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
-# y_train, y_test = y[splits[0]], y[splits[-1]]
-
-# print(Counter(y.flatten()), Counter(y_train.flatten()), Counter(y_test.flatten()))
-
-# num_optuna_trials = 3
-
-# n_epochs = 10
-
-# metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
-
-# study = optuna.create_study(
-#     direction='maximize',
-#     pruner=optuna.pruners.MedianPruner(),
-#     sampler=optuna.samplers.TPESampler(seed=seed)
-# )
-
-# study.optimize(
-#     objective_cv,
-#     n_trials=num_optuna_trials,
-#     show_progress_bar=True
-# )
 
 
 
@@ -504,7 +427,59 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # #                zero_norm=False, bn_1st=True, act=<class
     # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
+
+    # param_list = ['nf', 'fc_dropout', 'conv_dropout', 'ks', 'dilation']
+
+    # scaler = StandardScaler()
+
+    # X_train_final0 = np.expand_dims(
+    #     scaler.fit_transform(np.squeeze(X_train[:, 0, :])),
+    #     1
+    # )
+
+    # X_test0 = np.expand_dims(
+    #     scaler.transform(np.squeeze(X_test[:, 0, :])),
+    #     1
+    # )
+
+    # X_train_final = np.concatenate([X_train_final0, X_train[:, 1:, :]], axis=1)
+    # X_test = np.concatenate([X_test0, X_test[:, 1:, :]], axis=1)
+
+    # X_combined, y_combined, stratified_splits = combine_split_data(
+    #     [X_train_final, X_test], 
+    #     [y_train, y_test]
+    # )
+
+    # alpha = study.best_params['alpha']
+
+    # gamma = study.best_params['gamma']
+
+    # weights = torch.tensor([alpha, 1-alpha]).float().cuda()
+
+    # learner = TSClassifier(
+    #     X_combined,
+    #     y_combined,
+    #     bs=study.best_params['batch_size'],
+    #     splits=stratified_splits,
+    #     arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
+    #     arch_config={k: v for (k, v) in study.best_params.items() if k in param_list},
+    #     metrics=metrics,
+    #     loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
+    #     verbose=True,
+    #     cbs=[EarlyStoppingCallback(patience=study.best_params['patience']), ReduceLROnPlateau()],
+    #     device=device
+    # )
+
+    # learner.fit_one_cycle(1, 1e-3)
+
+
     return runtime, learn
+
+
+
+
+
+
 
 def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size):
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
@@ -643,53 +618,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
     #return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
     return runtime, learn
-
-
-
-
-# param_list = ['nf', 'fc_dropout', 'conv_dropout', 'ks', 'dilation']
-
-# scaler = StandardScaler()
-
-# X_train_final0 = np.expand_dims(
-#     scaler.fit_transform(np.squeeze(X_train[:, 0, :])),
-#     1
-# )
-
-# X_test0 = np.expand_dims(
-#     scaler.transform(np.squeeze(X_test[:, 0, :])),
-#     1
-# )
-
-# X_train_final = np.concatenate([X_train_final0, X_train[:, 1:, :]], axis=1)
-# X_test = np.concatenate([X_test0, X_test[:, 1:, :]], axis=1)
-
-# X_combined, y_combined, stratified_splits = combine_split_data(
-#     [X_train_final, X_test], 
-#     [y_train, y_test]
-# )
-
-# alpha = study.best_params['alpha']
-
-# gamma = study.best_params['gamma']
-
-# weights = torch.tensor([alpha, 1-alpha]).float().cuda()
-
-# learner = TSClassifier(
-#     X_combined,
-#     y_combined,
-#     bs=study.best_params['batch_size'],
-#     splits=stratified_splits,
-#     arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
-#     arch_config={k: v for (k, v) in study.best_params.items() if k in param_list},
-#     metrics=metrics,
-#     loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
-#     verbose=True,
-#     cbs=[EarlyStoppingCallback(patience=study.best_params['patience']), ReduceLROnPlateau()],
-#     device=device
-# )
-
-# learner.fit_one_cycle(1, 1e-3)
 
 
 

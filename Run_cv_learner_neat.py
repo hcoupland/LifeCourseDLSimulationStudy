@@ -20,31 +20,6 @@ import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 import rpy2.rinterface
 
-def hyperparameter_optimise(model_name,Xtrainvalid,Ytrainvalid, epochs, randnum, num_optuna_trials):
-    # function to use the right hyperparameter optimisation function depending on the model
-    if model_name=="LSTMFCN":
-        trial=MLmodel_opt_learner.hypersearchLSTMFCN(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="TCN":
-        trial=MLmodel_opt_learner.hypersearchTCN(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="XCM":
-        trial=MLmodel_opt_learner.hypersearchXCM(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="ResCNN":
-        trial=MLmodel_opt_learner.hypersearchResCNN(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="ResNet":
-        trial=MLmodel_opt_learner.hypersearchResNet(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="InceptionTime":
-        trial=MLmodel_opt_learner.hypersearchInceptionTime(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    if model_name=="MLSTMFCN":
-         trial=MLmodel_opt_learner.hypersearchMLSTMFCN(Xtrainvalid,Ytrainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials)
-
-    return trial
-
 def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum=8,  epochs=10,num_optuna_trials = 100, hype=False):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
@@ -120,7 +95,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum=
             # loop for hyperparameter search
 
             # find the hyperparameters using optuna and cross-validation on train/valid
-            trial=hyperparameter_optimise(model_name,X_trainvalid,Y_trainvalid,epochs,randnum,num_optuna_trials)
+            trial=MLmodel_opt_learner.hyperopt(X_trainvalid,Y_trainvalid,epochs=epochs,randnum=randnum, num_optuna_trials=num_optuna_trials, model_name=model_name)
             lr_max=1e-3
             # formatting the selected hyperparameters to put in the model
             params=trial.params
