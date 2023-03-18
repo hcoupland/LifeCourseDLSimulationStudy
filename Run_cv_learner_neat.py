@@ -2,19 +2,15 @@
 
 from tsai.all import *
 
-import random
 import numpy as np
 import torch
 
-import optuna
 import copy
-import math
-import sklearn.metrics as skm
 
+import sklearn.metrics as skm
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
 
-import timeit
 import Data_load_neat as Data_load
 import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner

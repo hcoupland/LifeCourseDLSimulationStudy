@@ -2,13 +2,7 @@
 
 from tsai.all import *
 
-import random
 import numpy as np
-import torch
-
-import optuna
-import copy
-import math
 import sklearn.metrics as skm
 
 from sklearn.linear_model import LogisticRegression
