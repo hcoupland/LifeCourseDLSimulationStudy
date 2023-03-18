@@ -98,13 +98,14 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum=
             all_params=copy.copy(params)
             #lr_max=params.get('learning_rate_init')
             batch_size=params.get('batch_size')
+            ESPatience=params.get('ESPatience')
             alpha=params.get('alpha')
             gamma=params.get('gamma')
             for key in rem_list:
                 del params[key]
        
             # Rerun the model on train/test with the selected hyperparameters
-            runtime, learn = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+            runtime, learn = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
             ## Need to scale X
             print(np.mean(X_trainvalid))
             print(np.mean(X_test))
