@@ -22,7 +22,7 @@ from sklearn.metrics import precision_score
 import timeit
 
 import Data_load_neat as Data_load
-import rpy2.rinterface
+#import rpy2.rinterface
 
 def LM_func(Xtrainvalid, Xtest):
     # function to reshape the data to flatten the time/feature dimensions into one

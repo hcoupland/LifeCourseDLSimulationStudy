@@ -25,7 +25,7 @@ from fastai.vision.all import *
 from sklearn.utils.class_weight import compute_class_weight
 
 from optuna.integration import FastAIPruningCallback
-import rpy2.rinterface
+#import rpy2.rinterface
 
 import itertools
 import random
@@ -143,8 +143,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
                 verbose=True,
-                cbs=[EarlyStoppingCallback(patience=ESpatience), ReduceLROnPlateau()],
-                device=device
+                cbs=[EarlyStoppingCallback(patience=ESpatience), ReduceLROnPlateau()]#,
+                #device=device
             )
             
             #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])

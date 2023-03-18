@@ -18,7 +18,7 @@ import timeit
 import Data_load_neat as Data_load
 import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
-import rpy2.rinterface
+#import rpy2.rinterface
 
 def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum=8,  epochs=10,num_optuna_trials = 100, hype=False):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
