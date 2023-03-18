@@ -147,7 +147,8 @@ def Standard_func(X,splits):
 
 def load_data(name):
     ## function to load all the data from the filepath
-    filepath="/home/DIDE/smishra/Simulations/input_data/"
+    filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
+    # filepath="/home/DIDE/smishra/Simulations/input_data/"
     X_raw = np.load("".join([filepath,name, "_X.npy"])).astype(np.float32)
 
     y_raw = np.load("".join([filepath,name, "_YH.npy"]))

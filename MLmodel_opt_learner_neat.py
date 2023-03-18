@@ -144,7 +144,6 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
                 verbose=True,
                 cbs=[EarlyStoppingCallback(patience=ESpatience), ReduceLROnPlateau()]#,
-                #device=device
             )
             
             #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
@@ -347,14 +346,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     
     
     # fit the model to the train/test data
-
-    # nf=trial.suggest_categorical('nf',[32,64,96,128])
-    # dropout_rate = trial.suggest_float('fc_dropout',0.0,1.0)
-    # dropout_rate2 = trial.suggest_float('conv_dropout',0.0,1.0)
-    # kernel_size=trial.suggest_categorical('ks',[20,40,60])
-    # dilation_size=trial.suggest_categorical('dilation',[1,2,3])
-    # model=dict(nf=nf,fc_dropout=dropout_rate,conv_dropout=dropout_rate2,ks=kernel_size,dilation=dilation_size)
-
     Data_load.random_seed2(randnum,True,dls=dls)
     rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
@@ -373,11 +364,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     stop=timeit.default_timer()
     runtime=stop-start
 
-    # assess model fit to test data
-    #valid_dl=clf.dls.valid
-    #acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
- 
-    #acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X3d[splits[1]],Y[splits[1]],valid_dl)
 
     #learn=TSClassifier(X3d,Y,splits=splits,arch=InceptionTimePlus,arch_config=model,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
 
@@ -427,35 +413,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # #                zero_norm=False, bn_1st=True, act=<class
     # #                'torch.nn.modules.activation.ReLU'>, act_kwargs={})
 
-
-    # param_list = ['nf', 'fc_dropout', 'conv_dropout', 'ks', 'dilation']
-
-    # scaler = StandardScaler()
-
-    # X_train_final0 = np.expand_dims(
-    #     scaler.fit_transform(np.squeeze(X_train[:, 0, :])),
-    #     1
-    # )
-
-    # X_test0 = np.expand_dims(
-    #     scaler.transform(np.squeeze(X_test[:, 0, :])),
-    #     1
-    # )
-
-    # X_train_final = np.concatenate([X_train_final0, X_train[:, 1:, :]], axis=1)
-    # X_test = np.concatenate([X_test0, X_test[:, 1:, :]], axis=1)
-
-    # X_combined, y_combined, stratified_splits = combine_split_data(
-    #     [X_train_final, X_test], 
-    #     [y_train, y_test]
-    # )
-
-    # alpha = study.best_params['alpha']
-
-    # gamma = study.best_params['gamma']
-
-    # weights = torch.tensor([alpha, 1-alpha]).float().cuda()
-
     # learner = TSClassifier(
     #     X_combined,
     #     y_combined,
@@ -472,25 +429,18 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     # learner.fit_one_cycle(1, 1e-3)
 
-
     return runtime, learn
-
-
-
-
 
 
 
 def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size):
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
-    FLweights=[alpha,1-alpha]
     # define the metrics for model fitting output
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
-    weights=torch.tensor(FLweights, dtype=torch.float)
+    weights=torch.tensor([alpha,1-alpha], dtype=torch.float)
     ESpatience=2
 
     # prep the data for the model
-
     tfms=[None,[Categorize()]]
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
 
@@ -522,44 +472,17 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         x,y = dls.one_batch()
         print(sum(y)/len(y))
 
-
-    #Data_load.random_seed(randnum,True)
-    #rng=np.random.default_rng(randnum)
-
     #dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
-
-
-    #count = Counter(labels)
-    #wgts = [1/count[dset.vocab[label]] for img, label in dset.train]
-    #len(wgts)
     
     print(dls.c)
     print(dls.len)
     print(dls.vars)
-    #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-    #weights=torch.tensor(weights, dtype=torch.float)
+    #weights=torch.tensor(compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]]), dtype=torch.float)
+
     Data_load.random_seed2(randnum,True,dls=dls)
     rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
 
-
-    #archs = [(ResNet, {}), (LSTM, {'n_layers':1, 'bidirectional': False}), (LSTM_FCN, {}), (InceptionTime, {})]
-
-    #results = pd.DataFrame(columns=['arch', 'hyperparams', 'total params', 'train loss', 'valid loss', 'accuracy', 'time'])
-    #for i, (arch, k) in enumerate(archs):
-    #    model = create_model(arch, dls=dls, **k)
-    #    print(model.__class__.__name__)
-    #    learn = Learner(dls, model,  metrics=accuracy)
-    #    start = time.time()
-    #    learn.fit_one_cycle(100, 1e-3)
-    #    elapsed = time.time() - start
-    #    vals = learn.recorder.values[-1]
-    #    results.loc[i] = [arch.__name__, k, count_parameters(model), vals[0], vals[1], vals[2], int(elapsed)]
-    #    results.sort_values(by='accuracy', ascending=False, ignore_index=True, inplace=True)
-    #    clear_output()
-    #    display(results)
-
-    #model = InceptionTime(dls.vars, dls.c)
     model = InceptionTimePlus(dls.vars, dls.c)
     learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
     learn.save('stage0')
@@ -568,7 +491,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #learn.lr_find()
 
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-    
+    #clf.fit_one_cycle(epochs,lr_max) 
 
     #InceptionTimePlus (c_in, c_out, seq_len=None, nf=32, nb_filters=None,
     #                flatten=False, concat_pool=False, fc_dropout=0.0,
@@ -605,52 +528,22 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         #clear_output()
         #display(results)
 
-    #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-    #clf.fit_one_cycle(epochs,lr_max)
+
     stop=timeit.default_timer()
     runtime=stop-start
     
-    # assess model generalisation to test data
-    
-    #valid_dl=clf.dls.valid
-    #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(clf,X3d[splits[1]],Y[splits[1]],valid_dl)
-    
-    #acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11=test_results(learn,X_scaled[splits[1]],Y[splits[1]],valid_dl)
-    #return runtime,acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11
     return runtime, learn
-
 
 
 
 def test_results(f_model,X_test,Y_test):
 
     valid_dl=f_model.dls.valid
-    b = next(iter(valid_dl))
-    #print(b)   
-
-
-    # function to assess goodness-of-fit to test data
-    print(valid_dl.c)
-    print(valid_dl.len)
-    print(valid_dl.vars)
-
-    valid_probas, valid_targets, valid_preds = f_model.get_preds(dl=valid_dl, with_decoded=True,save_preds=None,save_targs=None)
-    #print(valid_probas, valid_targets, valid_preds)
-    #print((valid_targets == valid_preds).float().mean())
 
     # obtain probability scores, predicted values and targets
     test_ds=valid_dl.dataset.add_test(X_test,Y_test)
-
     test_dl=valid_dl.new(test_ds)
-    print(test_dl.c)
-    print(test_dl.len)
-    print(test_dl.vars)
-
-    #print(next(iter(test_dl)))
-
     test_probas, test_targets,test_preds=f_model.get_preds(dl=test_dl,with_decoded=True,save_preds=None,save_targs=None)
-    #print(test_probas, test_targets, test_preds)
-    #print(f'accuracy: {skm.accuracy_score(test_targets, test_preds):10.6f}')
 
     # get the min, max and median of probability scores for each class
     where1s=np.where(Y_test==1)
@@ -662,9 +555,6 @@ def test_results(f_model,X_test,Y_test):
     print("Y equal 1:")
     print([min(test_probasout[where1s]),statistics.mean(test_probasout[where1s]),max(test_probasout[where1s])])
     #interp=ClassificationInterpretation.from_learner(f_model,dl=test_dl)
-    #interp.plot_confusion_matrix()
-
-    interp = ClassificationInterpretation.from_learner(f_model)
     #print(interp.most_confused(min_val=3))
 
     ## get the various metrics for model fit

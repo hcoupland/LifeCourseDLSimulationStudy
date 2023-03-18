@@ -46,7 +46,7 @@ randnum2=5#int(sys.argv[3])
 epochs=2#int(sys.argv[4])#2#10
 randnum1=6
 num_optuna_trials =2# int(sys.argv[5])#2#100
-hype= "True"# sys.argv[6]
+hype= "False"# sys.argv[6]
 
 savename="".join([ name,"_",model_name,"_rand",str(int(randnum2)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
 # filepathlog="".join(["/home/DIDE/smishra/Simulations/Results/outputCVL_", savename, ".log"])
