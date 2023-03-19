@@ -149,7 +149,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
             #model = InceptionTimePlus(dls.vars, dls.c)
-            model = arch(dls.vars, dls.c,params)
+            model = arch(dls.vars, dls.c,param_grid)
             learner = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()])     
 
             #clf.fit_one_cycle(epochs,lr_max)
@@ -173,7 +173,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learner.save('stage0')
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)
             learner.save('stage1')
-            learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+            #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
             print(learner.recorder.values[-1])
             #return learn.recorder.values[-1][1] ## this returns the valid loss
             return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
@@ -241,14 +241,14 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     )
 
 
-            for i in range(10):
-                x,y = dls.one_batch()
-                print(sum(y)/len(y))
-            ## this shows not 50% classes
+            # for i in range(10):
+            #     x,y = dls.one_batch()
+            #     print(sum(y)/len(y))
+            # ## this shows not 50% classes
 
-            print(dls.c)
-            print(dls.len)
-            print(dls.vars)
+            # print(dls.c)
+            # print(dls.len)
+            # print(dls.vars)
 
             
             # find valid_loss for this fold and these hyperparameters
@@ -402,7 +402,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     FLweights=[alpha,1-alpha]
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
     weights=torch.tensor(FLweights, dtype=torch.float)
-    ESpatience=2
+    ESPatience=2
 
     # prep the data for the model
     tfms=[None,[Categorize()]]
@@ -449,7 +449,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     #model = InceptionTimePlus(dls.vars, dls.c)
     model = arch(dls.vars, dls.c)
-    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
+    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()])
     learn.save('stage0')
 
     #learn.load('stage0')
