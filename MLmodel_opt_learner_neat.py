@@ -143,14 +143,20 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #    trainable_params>, verbose=False)
 
             #     # fit the model to the train/test data
-            Data_load.random_seed2(randnum,True,dls=dls)
-            rng=np.random.default_rng(randnum)
+            Data_load.random_seed2(randnum_train,True,dls=dls)
 
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
             #model = InceptionTimePlus(dls.vars, dls.c)
             model = arch(dls.vars, dls.c,param_grid)
-            learner = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()])     
+            learner = Learner(
+                dls, 
+                model, 
+                metrics=metrics,
+                loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+                #seed=randnum_train,
+                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
+                )     
 
             #clf.fit_one_cycle(epochs,lr_max)
 
@@ -185,11 +191,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
         # # set random seed
         # Data_load.random_seed(randnum,True)
-        # rng=np.random.default_rng(randnum)
         # torch.set_num_threads(18)
         
         # divide train data into 5 fold
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=0)
+        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=randnum)
         skf.get_n_splits(Xtrainvalid,Ytrainvalid)
         scaler=StandardScaler()
 
@@ -227,7 +232,6 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             print(class_weights)
 
             Data_load.random_seed(randnum,True)
-            rng=np.random.default_rng(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
@@ -249,10 +253,13 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # print(dls.c)
             # print(dls.len)
             # print(dls.vars)
-
+            instance_scores=[]
             
             # find valid_loss for this fold and these hyperparameters
-            trial_score= objective(trial)
+            for randnum_train in range(1,3):
+                trial_score_instance= objective(trial)
+                instance_scores.append(trial_score_instance)
+            trial_score=np.mean(instance_scores)
             scores.append(trial_score)
 
         return np.mean(scores)
@@ -260,12 +267,11 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     
     # set random seed
     Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
     torch.set_num_threads(18)
 
     # create optuna study
     #study=optuna.create_study(direction='minimize',pruner=optuna.pruners.HyperbandPruner())
-    optsampler = TPESampler(seed=10)  # Make the sampler behave in a deterministic way.
+    optsampler = TPESampler(seed=randnum)  # Make the sampler behave in a deterministic way.
     study=optuna.create_study(
         direction='maximize',
         pruner=optuna.pruners.MedianPruner(),
@@ -297,14 +303,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
 
-
-
 def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience):
     # function to fit the model on the train/test data with pre-trained hyperparameters
-    Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
-    torch.set_num_threads(18)
-
     # metrics to output whilst fitting
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
 
@@ -314,7 +314,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     
     # standardize and one-hot the data
     #X_scaled=Data_load.prep_data(X,splits)
-
 
     # prep the data for the model
     #X3d=to3d(X)
@@ -327,7 +326,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
 
     # Data_load.random_seed(randnum,True)
-    # rng=np.random.default_rng(randnum)
 
     # define batches
     dls=TSDataLoaders.from_dsets(
@@ -353,7 +351,6 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     # fit the model to the train/test data
     Data_load.random_seed2(randnum,True,dls=dls)
-    rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
@@ -364,7 +361,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         model, 
         metrics=metrics,
         loss_func=FocalLossFlat(gamma=gamma,weight=weights),
-        seed=randnum,
+        #seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
     learn.save('stage0')
@@ -427,7 +424,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
 
     # Data_load.random_seed(randnum,True)
-    # rng=np.random.default_rng(randnum)
     
     dls=TSDataLoaders.from_dsets(
             dsets.train,
@@ -451,7 +447,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     #weights=torch.tensor(compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]]), dtype=torch.float)
 
     Data_load.random_seed2(randnum,True,dls=dls)
-    rng=np.random.default_rng(randnum)
     start=timeit.default_timer()
 
     #model = InceptionTimePlus(dls.vars, dls.c)
@@ -461,7 +456,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         model, 
         metrics=metrics,
         loss_func=FocalLossFlat(gamma=gamma,weight=weights),
-        seed=randnum,
+        #seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
     learn.save('stage0')
@@ -479,7 +474,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     return runtime, learn
 
 # clf=TSClassifier(X,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-# clf.fit_one_cycle(epochs,lr_max) 
 
 # learn = TSClassifier(
 #     X,
@@ -492,7 +486,6 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 #     verbose=True,
 #     cbs=[EarlyStoppingCallback(patience=ESpatience), ReduceLROnPlateau()]#,
 # )
-
 
 
 def test_results(f_model,X_test,Y_test):

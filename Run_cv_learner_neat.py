@@ -65,7 +65,6 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
 
         ## Set seed
         Data_load.random_seed(randnum_split, True)
-        rng = np.random.default_rng(randnum_split)
         torch.set_num_threads(18)
 
         ## split out the test set
@@ -92,7 +91,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             # loop for hyperparameter search
 
             # find the hyperparameters using optuna and cross-validation on train/valid
-            trial=MLmodel_opt_learner.hyperopt(X_trainvalid,Y_trainvalid,epochs=epochs,num_optuna_trials=num_optuna_trials, model_name=model_name)
+            trial=MLmodel_opt_learner.hyperopt(X_trainvalid,Y_trainvalid,epochs=epochs,num_optuna_trials=num_optuna_trials, model_name=model_name,randnum=randnum_split)
             lr_max=1e-3
             # formatting the selected hyperparameters to put in the model
             params=trial.params
@@ -119,8 +118,6 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 print(np.std(Y_trainvalid))
                 print(np.std(Y_test))
                 acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X_test,Y_test)
-
-
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,batch_size,alpha,gamma]

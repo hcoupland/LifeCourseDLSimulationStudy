@@ -29,9 +29,9 @@ import Run_cv_learner_neat as Run_cv_learner
 name = "data_2real1bigdet" #sys.argv[1]# "data_2real1bigdet"
 model_name="InceptionTime"#sys.argv[2]#"InceptionTime"
 randnum_split=5#int(sys.argv[3])
-epochs=2#int(sys.argv[4])#2#10
+epochs=1#int(sys.argv[4])#2#10
 #randnum1=6
-num_optuna_trials =2# int(sys.argv[5])#2#100
+num_optuna_trials =1# int(sys.argv[5])#2#100
 hype= "True"# sys.argv[6]
 
 print(name)
