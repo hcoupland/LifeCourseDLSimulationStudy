@@ -198,7 +198,8 @@ def split_data(X, Y,randnum):
             stratify=True,
             shuffle=True,
             test_size=0,
-            show_plot=False
+            show_plot=False,
+            random_state=randnum
             )
     X_trainvalid, X_test = X[splits[0]], X[splits[1]]
     Y_trainvalid, Y_test = Y[splits[0]], Y[splits[1]]

@@ -326,8 +326,8 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(class_weights)
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
 
-    Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
+    # Data_load.random_seed(randnum,True)
+    # rng=np.random.default_rng(randnum)
 
     # define batches
     dls=TSDataLoaders.from_dsets(
@@ -359,7 +359,14 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     #model = InceptionTimePlus(dls.vars, dls.c)
     model = arch(dls.vars, dls.c,params)
-    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()])
+    learn = Learner(
+        dls, 
+        model, 
+        metrics=metrics,
+        loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+        seed=randnum,
+        cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
+        )
     learn.save('stage0')
 
     learn.fit_one_cycle(epochs, lr_max)
@@ -419,8 +426,8 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(len(dsets))
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
 
-    Data_load.random_seed(randnum,True)
-    rng=np.random.default_rng(randnum)
+    # Data_load.random_seed(randnum,True)
+    # rng=np.random.default_rng(randnum)
     
     dls=TSDataLoaders.from_dsets(
             dsets.train,
@@ -449,7 +456,14 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     #model = InceptionTimePlus(dls.vars, dls.c)
     model = arch(dls.vars, dls.c)
-    learn = Learner(dls, model, metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()])
+    learn = Learner(
+        dls, 
+        model, 
+        metrics=metrics,
+        loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+        seed=randnum,
+        cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
+        )
     learn.save('stage0')
 
     #learn.load('stage0')
