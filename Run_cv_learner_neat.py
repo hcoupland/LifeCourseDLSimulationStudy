@@ -127,7 +127,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 output = pd.DataFrame([outputs], columns=colnames)
 
                 if imp=="True":
-                    learner.feature_importance(show_chart=False)
+                    learner.feature_importance(show_chart=False, key_metric_idx=4)
             output.to_csv(filepathout, index=False)
             print(output)
 
@@ -160,7 +160,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"])
                 
                 if imp=="True":
-                    learner.feature_importance(show_chart=False)
+                    learner.feature_importance(show_chart=False, key_metric_idx=4)
             output.to_csv(filepathout, index=False)
             print(output)
     #sys.stdout.close()
