@@ -1,30 +1,31 @@
 ## script containing hyperparameter optimisation functions, model fitting functions and output analysis functions
+from collections import Counter
+import statistics
+import timeit
+import itertools
+import warnings
 from tsai.all import *
 
 import numpy as np
 import torch
-import statistics
 
 import optuna
 from optuna.samplers import TPESampler
 import sklearn.metrics as skm
 
-from collections import Counter
 
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import WeightedRandomSampler
-from sklearn.metrics import roc_auc_score
 
-import timeit
-import Data_load_neat as Data_load
-from fastai.vision.all import *
 from sklearn.utils.class_weight import compute_class_weight
-
 from optuna.integration import FastAIPruningCallback
+from fastai.vision.all import *
+import Data_load_neat as Data_load
+
+
 #import rpy2.rinterface
 
-import itertools
-import warnings
+
 warnings.filterwarnings('ignore')
 
 
@@ -72,7 +73,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'cell_dropout': trial.suggest_float('cell_dropout', 0.0, 1.0),
                     'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
                 }
-                
+
 
             if model_name=="LSTMFCN":
                 arch=LSTM_FCNPlus#(c_in=X_combined.shape[1], c_out=2)
@@ -86,7 +87,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
                 }
 
-        
+
             if model_name=="TCN":
                 arch=TCN#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
@@ -95,7 +96,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
                     'layers': trial.suggest_categorical('layers', choices=kstcombinations),
                 }
-  
+
 
             if model_name=="XCM":
                 arch=XCMPlus#(c_in=X_combined.shape[1], c_out=2)
@@ -104,11 +105,11 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
                 }
                 
-  
+
             if model_name=="ResCNN":
                 arch=ResCNN#(c_in=X_combined.shape[1], c_out=2)
                 param_grid=dict()
-       
+
 
             if model_name=="ResNet":
                 arch=ResNetPlus#(c_in=X_combined.shape[1], c_out=2)
@@ -153,13 +154,13 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #model = InceptionTimePlus(dls.vars, dls.c)
             model = arch(dls.vars, dls.c,param_grid)
             learner = Learner(
-                dls, 
-                model, 
+                dls,
+                model,
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=gamma,weight=weights),
                 #seed=randnum_train,
                 cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
-                )     
+                )
 
             #clf.fit_one_cycle(epochs,lr_max)
 
@@ -176,7 +177,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #     verbose=True,
             #     cbs=[EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]#,
             # )
-            
+
             #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
             # FIXME: Okay so here I think I save the learner at different stages but have no idea how to properly load it later so I could use it
             # FIXME: I also don't understand why I would need to save the learner?
@@ -377,7 +378,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     learn.fit_one_cycle(epochs, lr_max)
     learn.save('stage1')
-    learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+    #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
     #clf.fit_one_cycle(epochs,lr_max)
     stop=timeit.default_timer()
@@ -476,7 +477,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     learn.fit_one_cycle(epochs, lr_max)
     learn.save('stage1')
 
-    learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
+    #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
     stop=timeit.default_timer()
     runtime=stop-start
 

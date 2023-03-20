@@ -1,22 +1,20 @@
 ## Script containg functions to load, standardize, one-hot the data
-
+import copy
+import math
+import random
+from collections import Counter
 from tsai.all import *
 
-import random
 import numpy as np
 import torch
-
-from collections import Counter
 
 import imblearn
 
 from torchsampler import ImbalancedDatasetSampler
 from torch.utils.data import WeightedRandomSampler
 from sklearn.utils.class_weight import compute_class_weight
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from fastai.vision.all import *
-from random import choices
 from tsai.imports import *
 from tsai.utils import *
 from tsai.data.core import TSDataLoaders, TSDatasets
@@ -24,9 +22,7 @@ from tsai.data.preprocessing import TSStandardize
 from tsai.data.validation import get_splits
 
 import torch.nn.functional as F
-from sklearn.preprocessing import OneHotEncoder
-import copy
-import math
+
 
 def random_seed(seed_value, use_cuda):
     #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
@@ -53,14 +49,14 @@ def random_seed2(seed_value, use_cuda,dls):
         torch.backends.cudnn.benchmark = False
     print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
 
-def OneHot_func(X):
+def onehot_func(X):
     #function to one hot the data
     N=X.shape[0]
     D=X.shape[1]
     T=X.shape[2]
     ## Fit the encoder to the train data
     encoder=OneHotEncoder()
-    Xcopy=copy.copy(X)
+    Xcopy=X.copy()
     Xcopy=torch.tensor(Xcopy)
     Xcopy=Xcopy.to(torch.int64)
     Xcopy=np.transpose(Xcopy,(0,2,1))
@@ -71,7 +67,7 @@ def OneHot_func(X):
     Doh=sum(num_cat)
 
     ## one hot the data
-    Xoh=copy.copy(X)
+    Xoh=X.copy()
     Xoh=torch.tensor(Xoh)
     Xoh=Xoh.to(torch.int64) 
     Xoh=np.transpose(Xoh,(0,2,1))
@@ -93,7 +89,7 @@ def OneHot_func(X):
     ## one hot the valid/test data
     #Xvalid=X[splits[1]]
     #Xvalid=torch.tensor(Xvalid)
-    #Xvalid=Xvalid.to(torch.int64) 
+    #Xvalid=Xvalid.to(torch.int64)
     #Xvalid=np.transpose(Xvalid,(0,2,1))
     #Xvalid=np.reshape(Xvalid,(-1,D),order='A')
     #Xvalid=encoder.transform(Xvalid).toarray()
@@ -174,7 +170,7 @@ def prep_data(X, splits):
     # FIXME: worth noting that I am not scaling at the moment because I am not sure that this code works
     Xoh=X[:,oh_vars,:]
     Xstnd=X[:,stnd_vars,:]
-    Xoh_out=OneHot_func(Xoh)
+    Xoh_out=onehot_func(Xoh)
     Xstnd_out=Standard_func(Xstnd,splits)
 
     X_scaled=np.concatenate([Xoh_out,Xstnd_out],axis=1)

@@ -1,3 +1,6 @@
+import Data_load_neat as Data_load
+import Run_cv_learner_neat as Run_cv_learner
+
 import importlib
 import fastai
 import tsai
@@ -18,8 +21,7 @@ from tsai.tslearner import TSClassifier
 
 ## script to control overal running of model
 
-import Data_load_neat as Data_load
-import Run_cv_learner_neat as Run_cv_learner
+
 
 # FIXME: I think I should put these arguments in another folder - right?
 # load in arguments from command line
@@ -28,10 +30,11 @@ model_name="InceptionTime"#sys.argv[2]#
 randnum_split=5#int(sys.argv[3])
 epochs=1#int(sys.argv[4])
 num_optuna_trials =1# int(sys.argv[5])
-hype= "True"# sys.argv[6]
+hype= "False"# sys.argv[6]
+imp = "True"
 
 
-def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype):
+def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp):
     print(name)
     ## Function to load in data
     X_raw, y_raw = Data_load.load_data(name=name)
@@ -71,10 +74,21 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype):
 
     ## Runs hyperparameter and fits those models required
     #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
-    output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid, Y_trainvalid=Y_trainvalid, X_test=X_test, Y_test=Y_test, randnum_split=randnum_split,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
-    
+    output=Run_cv_learner.All_run(
+        name=name,
+        model_name=model_name,
+        X_trainvalid=X_trainvalid, 
+        Y_trainvalid=Y_trainvalid, 
+        X_test=X_test, 
+        Y_test=Y_test, 
+        randnum_split=randnum_split,  
+        epochs=epochs,
+        num_optuna_trials = num_optuna_trials, 
+        hype=hype,
+        imp=imp
+        )
+
     # FIXME: I'm confused what I am meant to return here
     return output
 
-run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype)
-
+run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp)

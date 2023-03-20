@@ -12,7 +12,7 @@ import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
 
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False):
+def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
@@ -104,8 +104,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 del params[key]
        
             for randnum in range(1,3):
+                print("  Random seed: ",randnum)
                 # Rerun the model on train/test with the selected hyperparameters
-                runtime, learn = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
+                runtime, learner = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
                 ## Need to scale X
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
@@ -116,7 +117,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 print(np.mean(Y_test))
                 print(np.std(Y_trainvalid))
                 print(np.std(Y_test))
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X_test,Y_test)
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test)
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,batch_size,alpha,gamma]
@@ -124,6 +125,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","batch_size","alpha","gamma"]
                 colnames.extend(list(all_params.keys()))
                 output = pd.DataFrame([outputs], columns=colnames)
+
+                if imp=="True":
+                    learner.feature_importance(show_chart=False)
             output.to_csv(filepathout, index=False)
             print(output)
 
@@ -136,9 +140,10 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
 
             ## instances
             for randnum in range(1,3):
+                print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learn = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))
@@ -148,11 +153,14 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 print(np.mean(Y_test))
                 print(np.std(Y_trainvalid))
                 print(np.std(Y_test))
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learn,X_test,Y_test)
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test)
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,lr_max,batch_size,alpha,gamma]
                 output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"])
+                
+                if imp=="True":
+                    learner.feature_importance(show_chart=False)
             output.to_csv(filepathout, index=False)
             print(output)
     #sys.stdout.close()
