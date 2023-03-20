@@ -35,6 +35,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
 
     # for LSTM-FCN or MLSTM-FCN or TCN
+    # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
     iterable = [32,64,96,128,256,32,64,96,128,256,32,64,96,128,256]
     combinations = []
     combinations.extend([list(x) for x in itertools.combinations(iterable=iterable, r=3)])
@@ -59,6 +60,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # weights=torch.tensor([alpha,1-alpha].float().cuda())
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float)
 
+            # FIXME: There might be a better way to specify the different models
             if model_name=="MLSTMFCN":
                 arch=MLSTM_FCNPlus#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
@@ -145,6 +147,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #     # fit the model to the train/test data
             Data_load.random_seed2(randnum_train,True,dls=dls)
 
+            # FIXME: Not sure if TSClassifier or Learner is better to use, I have stuck with Learner in the hope that using dls will allow me to have weighted sampling if I need it
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
             #model = InceptionTimePlus(dls.vars, dls.c)
@@ -175,6 +178,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # )
             
             #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
+            # FIXME: Okay so here I think I save the learner at different stages but have no idea how to properly load it later so I could use it
+            # FIXME: I also don't understand why I would need to save the learner?
+            # FIXME: I also don't understand when I should be reloading the learner and at what stage?
             print(learner.summary())
             learner.save('stage0')
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)
@@ -226,6 +232,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             tfms=[None,Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
 
+            # FIXME: i HAVE GIVEN UP ON WeightedRandomSampler but potentially it is still a good thing to do?
             # set up the weightedrandom sampler
             class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=y_combined[stratified_splits[0]])
             sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
@@ -257,6 +264,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             
             # find valid_loss for this fold and these hyperparameters
             for randnum_train in range(1,3):
+                print("  Random seed: ",randnum_train)
                 trial_score_instance= objective(trial)
                 instance_scores.append(trial_score_instance)
             trial_score=np.mean(instance_scores)

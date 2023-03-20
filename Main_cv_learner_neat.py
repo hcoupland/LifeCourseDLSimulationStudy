@@ -24,55 +24,60 @@ from tsai.tslearner import TSClassifier
 import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
-
+# FIXME: I think I should put these arguments in another folder - right?
 # load in arguments from command line
-name = "data_2real1bigdet" #sys.argv[1]# "data_2real1bigdet"
-model_name="InceptionTime"#sys.argv[2]#"InceptionTime"
+name = "data_2real1bigdet" #sys.argv[1]#
+model_name="InceptionTime"#sys.argv[2]#
 randnum_split=5#int(sys.argv[3])
-epochs=1#int(sys.argv[4])#2#10
-#randnum1=6
-num_optuna_trials =1# int(sys.argv[5])#2#100
+epochs=1#int(sys.argv[4])
+num_optuna_trials =1# int(sys.argv[5])
 hype= "True"# sys.argv[6]
 
-print(name)
-## Function to load in data
-X_raw, y_raw = Data_load.load_data(name=name)
 
-## Function to obtain the train/test split
-X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype):
+    print(name)
+    ## Function to load in data
+    X_raw, y_raw = Data_load.load_data(name=name)
 
-
-# X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
-# y_train, y_test = y[splits[0]], y[splits[-1]]
-
-## Now scale all the data for ease (can fix this later)
-X_scaled=Data_load.prep_data(X_raw,splits)
-X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
+    ## Function to obtain the train/test split
+    X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
 
 
-print(np.mean(X_trainvalid))
-print(np.mean(X_test))
-print(np.std(X_trainvalid))
-print(np.std(X_test))
-print(np.mean(X_trainvalid_s))
-print(np.mean(X_test_s))
-print(np.std(X_trainvalid_s))
-print(np.std(X_test_s))
+    # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
+    # y_train, y_test = y[splits[0]], y[splits[-1]]
 
-print(np.mean(Y_trainvalid))
-print(np.mean(Y_test))
-print(np.std(Y_trainvalid))
-print(np.std(Y_test))
+    ## Now scale all the data for ease (can fix this later)
+    X_scaled=Data_load.prep_data(X_raw,splits)
 
-print('Data generated')
-
-#pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
+    # FIXME: Should this be X_scaled[splits[-1]] for the second? And if so, why?
+    X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
 
 
-## Runs hyperparameter and fits those models required
-#output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
-output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid, Y_trainvalid=Y_trainvalid, X_test=X_test, Y_test=Y_test, randnum_split=randnum_split,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+    print(np.mean(X_trainvalid))
+    print(np.mean(X_test))
+    print(np.std(X_trainvalid))
+    print(np.std(X_test))
+    print(np.mean(X_trainvalid_s))
+    print(np.mean(X_test_s))
+    print(np.std(X_trainvalid_s))
+    print(np.std(X_test_s))
 
+    print(np.mean(Y_trainvalid))
+    print(np.mean(Y_test))
+    print(np.std(Y_trainvalid))
+    print(np.std(Y_test))
+
+    print('Data generated')
+
+    #pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
+
+
+    ## Runs hyperparameter and fits those models required
+    #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+    output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid, Y_trainvalid=Y_trainvalid, X_test=X_test, Y_test=Y_test, randnum_split=randnum_split,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
+    
+    # FIXME: I'm confused what I am meant to return here
+    return output
 
 
 

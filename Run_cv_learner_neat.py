@@ -40,6 +40,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
         print(output)
 
     else:
+        # FIXME: These lines basically give the architecture name for each model, I am sure there is a better way to load the models for each architecture
         # Give the architecture for each model
         if model_name=="LSTMFCN":
             arch=LSTM_FCNPlus
@@ -67,6 +68,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
         Data_load.random_seed(randnum_split, True)
         torch.set_num_threads(18)
 
+        # FIXME: Here I Split out 10 percent of the trainvalid set to use as a final validation set - not sure if there is a better way to do this - potentially I should do it at the start?
         ## split out the test set
         splits_9010 = get_splits(
                 Y_trainvalid,

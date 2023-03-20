@@ -33,7 +33,6 @@ def random_seed(seed_value, use_cuda):
     np.random.seed(seed_value)  # Numpy vars
     torch.manual_seed(seed_value)  # PyTorch vars
     random.seed(seed_value)  # Python
-    # rng = np.random.default_rng(seed_value)
     if use_cuda:  # GPU vars
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
@@ -47,7 +46,6 @@ def random_seed2(seed_value, use_cuda,dls):
     torch.manual_seed(seed_value)  # PyTorch vars
     random.seed(seed_value)  # Python
     dls.rng.seed(seed_value) #added this line
-    # rng = np.random.default_rng(seed_value)
     if use_cuda:  # GPU vars
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
@@ -173,6 +171,7 @@ def prep_data(X, splits):
     oh_vars=[1,2,3,4,5,6,7,8]
     stnd_vars=[0]
 
+    # FIXME: worth noting that I am not scaling at the moment because I am not sure that this code works
     Xoh=X[:,oh_vars,:]
     Xstnd=X[:,stnd_vars,:]
     Xoh_out=OneHot_func(Xoh,splits)
@@ -186,7 +185,6 @@ def split_data(X, Y,randnum):
 
     ## Set seed
     random_seed(randnum, True)
-    rng = np.random.default_rng(randnum)
     torch.set_num_threads(18)
 
     #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
@@ -237,7 +235,6 @@ def add_stoc(Y,stoc,randnum):
     # function to add stochasticity to Y
     ## Set seed
     random_seed(randnum, True)
-    rng = np.random.default_rng(randnum)
     torch.set_num_threads(18)
 
     #copies Y
