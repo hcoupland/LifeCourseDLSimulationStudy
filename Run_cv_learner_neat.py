@@ -7,10 +7,6 @@ import torch
 
 import copy
 
-import sklearn.metrics as skm
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-
 import Data_load_neat as Data_load
 import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
@@ -31,12 +27,13 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
  
     if model_name=="LR":
         # fit the logistic regression model
-        runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
-        
-        # Formatting and saving the output
-        outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
-        output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
-        output.to_csv(filepathout, index=False)
+        for randnum in range(1,3):
+            runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
+            
+            # Formatting and saving the output
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
+            output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+            output.to_csv(filepathout, index=False)
         print(output)
 
     else:

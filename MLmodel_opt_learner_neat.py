@@ -318,7 +318,8 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
 
-    weights=torch.tensor([alpha,1-alpha], dtype=torch.float)
+    FLweights=[alpha,1-alpha]
+    weights=torch.tensor(FLweights, dtype=torch.float)
     
     # standardize and one-hot the data
     #X_scaled=Data_load.prep_data(X,splits)

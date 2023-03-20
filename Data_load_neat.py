@@ -53,7 +53,7 @@ def random_seed2(seed_value, use_cuda,dls):
         torch.backends.cudnn.benchmark = False
     print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
 
-def OneHot_func(X,splits):
+def OneHot_func(X):
     #function to one hot the data
     N=X.shape[0]
     D=X.shape[1]
@@ -174,7 +174,7 @@ def prep_data(X, splits):
     # FIXME: worth noting that I am not scaling at the moment because I am not sure that this code works
     Xoh=X[:,oh_vars,:]
     Xstnd=X[:,stnd_vars,:]
-    Xoh_out=OneHot_func(Xoh,splits)
+    Xoh_out=OneHot_func(Xoh)
     Xstnd_out=Standard_func(Xstnd,splits)
 
     X_scaled=np.concatenate([Xoh_out,Xstnd_out],axis=1)

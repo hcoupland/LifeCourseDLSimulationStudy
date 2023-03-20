@@ -3,12 +3,9 @@ import fastai
 import tsai
 importlib.reload(fastai)
 importlib.reload(tsai)
-
 from collections import Counter
-
 import numpy as np
 import torch.nn.functional as F
-
 from fastai.callback.tracker import EarlyStoppingCallback, ReduceLROnPlateau
 from fastai.data.transforms import Categorize
 from fastai.losses import BCEWithLogitsLossFlat, FocalLoss, FocalLossFlat
@@ -79,5 +76,5 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype):
     # FIXME: I'm confused what I am meant to return here
     return output
 
-
+run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype)
 
