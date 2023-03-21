@@ -148,7 +148,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #     # fit the model to the train/test data
             Data_load.random_seed2(randnum_train,dls=dls)
 
-            # FIXME: Not sure if TSClassifier or Learner is better to use, I have stuck with Learner in the hope that using dls will allow me to have weighted sampling if I need it
+            # print(weights.get_device())
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
             #model = InceptionTimePlus(dls.vars, dls.c)
