@@ -1,0 +1,23 @@
+# Random seed
+seed: null
+
+# Maximum value for the random seed
+max_seed: 42
+
+# Path to repo
+repo_path: C:/KU/helen/Simulations
+
+# File containing X data
+x_file: data_2real1bigdet_X.npy
+
+# File containing y data
+y_file: data_2real1bigdet_YH.npy
+
+# Size of the test set
+test_size: 0.2
+
+# Number of training epochs
+n_epochs: 10
+
+# Number of optuna trials
+num_optuna_trials: 3
