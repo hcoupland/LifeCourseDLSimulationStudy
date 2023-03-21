@@ -17,7 +17,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
 
     # Giving the filepath for the output
     savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join([filepath,"model_results/outputCVL_", savename, ".csv"])
+    filepathout="".join([filepath,"Simulations/model_results/outputCVL_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)

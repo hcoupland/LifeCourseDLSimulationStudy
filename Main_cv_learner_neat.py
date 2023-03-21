@@ -1,6 +1,7 @@
 import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
+import torch
 import importlib
 import fastai
 import tsai
