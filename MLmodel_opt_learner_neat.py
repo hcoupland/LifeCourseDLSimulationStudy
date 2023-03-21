@@ -59,7 +59,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             alpha=trial.suggest_float("alpha",0.0,1.0)
             gamma=trial.suggest_float("gamma",0.0,5.0)
             # weights=torch.tensor([alpha,1-alpha].float().cuda())
-            weights=torch.tensor([alpha,1-alpha],dtype=torch.float)
+            weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
 
             # FIXME: There might be a better way to specify the different models
             if model_name=="MLSTMFCN":
@@ -158,7 +158,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 dls,
                 model,
                 metrics=metrics,
-                loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+                loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
                 #seed=randnum_train,
                 cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
                 )
@@ -324,7 +324,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
 
     FLweights=[alpha,1-alpha]
-    weights=torch.tensor(FLweights, dtype=torch.float)
+    weights=torch.tensor(FLweights, dtype=torch.float).to(device)
     
     # standardize and one-hot the data
     #X_scaled=Data_load.prep_data(X,splits)
@@ -376,7 +376,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         dls, 
         model, 
         metrics=metrics,
-        loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+        loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
         #seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
