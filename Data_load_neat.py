@@ -24,7 +24,7 @@ from tsai.data.validation import get_splits
 import torch.nn.functional as F
 
 
-def random_seed(seed_value, use_cuda):
+def random_seed(seed_value, use_cuda=True):
     #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
     np.random.seed(seed_value)  # Numpy vars
     torch.manual_seed(seed_value)  # PyTorch vars
@@ -36,7 +36,7 @@ def random_seed(seed_value, use_cuda):
         torch.backends.cudnn.benchmark = False
     print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
 
-def random_seed2(seed_value, use_cuda,dls):
+def random_seed2(seed_value,dls, use_cuda=True):
     #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
     np.random.seed(seed_value)  # Numpy vars
     torch.manual_seed(seed_value)  # PyTorch vars
@@ -138,14 +138,12 @@ def Standard_func(X,splits):
     #Xstnd = np.concatenate([Xtrain,Xvalid])
     return Xstnd
 
-
-def load_data(name):
+def load_data(name,filepath):
     ## function to load all the data from the filepath
-    filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
-    # filepath="/home/DIDE/smishra/Simulations/input_data/"
-    X_raw = np.load("".join([filepath,name, "_X.npy"])).astype(np.float32)
 
-    y_raw = np.load("".join([filepath,name, "_YH.npy"]))
+    X_raw = np.load("".join([filepath,"input_data/",name, "_X.npy"])).astype(np.float32)
+
+    y_raw = np.load("".join([filepath,"input_data/",name, "_YH.npy"]))
 
     y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
 
@@ -153,7 +151,7 @@ def load_data(name):
 
     #filepath="/home/fkmk708805/data/workdata/708805/helen/Proc_data/"
 
-    Y_raw = np.squeeze(np.load("".join([filepath,name, "_YH.npy"])))
+    Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",name, "_YH.npy"])))
     Y = Y_raw[:, np.shape(Y_raw)[1] - 1]
     print(Y.shape)
 
@@ -180,7 +178,7 @@ def split_data(X, Y,randnum):
     # function to load the data and do the original train/test split
 
     ## Set seed
-    random_seed(randnum, True)
+    random_seed(randnum)
     torch.set_num_threads(18)
 
     #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
@@ -230,7 +228,7 @@ def split_data(X, Y,randnum):
 def add_stoc(Y,stoc,randnum):
     # function to add stochasticity to Y
     ## Set seed
-    random_seed(randnum, True)
+    random_seed(randnum)
     torch.set_num_threads(18)
 
     #copies Y

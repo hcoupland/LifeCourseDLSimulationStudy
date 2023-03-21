@@ -68,7 +68,7 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum, True)
+    Data_load.random_seed(randnum)
 
     # sclae and one-hot the data
     #X_scaled=Data_load.prep_data(X, splits)
@@ -80,7 +80,7 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()
-    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga").fit(X_LRtrain, Ytrainvalid)
+    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum).fit(X_LRtrain, Ytrainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
 

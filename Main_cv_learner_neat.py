@@ -23,7 +23,6 @@ from tsai.tslearner import TSClassifier
 
 
 
-# FIXME: I think I should put these arguments in another folder - right?
 # load in arguments from command line
 name = "data_2real1bigdet" #sys.argv[1]#
 model_name="InceptionTime"#sys.argv[2]#
@@ -32,12 +31,14 @@ epochs=1#int(sys.argv[4])
 num_optuna_trials =10# int(sys.argv[5])
 hype= "False"# sys.argv[6]
 imp = "False"
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+# filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
+filepath="/home/DIDE/smishra/Simulations/"
 
-
-def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp):
+def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filepath, device):
     print(name)
     ## Function to load in data
-    X_raw, y_raw = Data_load.load_data(name=name)
+    X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath)
 
     ## Function to obtain the train/test split
     X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
@@ -85,10 +86,13 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp):
         epochs=epochs,
         num_optuna_trials = num_optuna_trials, 
         hype=hype,
-        imp=imp
+        imp=imp,
+        filepath=filepath,
+        device=device
         )
 
     # FIXME: I'm confused what I am meant to return here
     return output
 
-run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp)
+if __name__ == '__main__':
+    run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device)

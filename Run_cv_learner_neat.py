@@ -12,12 +12,12 @@ import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
 
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False):
+def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
     savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join(["C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/model_results/outputCVL_", savename, ".csv"])
+    filepathout="".join([filepath,"model_results/outputCVL_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)
@@ -62,7 +62,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
         
 
         ## Set seed
-        Data_load.random_seed(randnum_split, True)
+        Data_load.random_seed(randnum_split)
         torch.set_num_threads(18)
 
         # FIXME: Here I Split out 10 percent of the trainvalid set to use as a final validation set - not sure if there is a better way to do this - potentially I should do it at the start?
@@ -90,7 +90,15 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             # loop for hyperparameter search
 
             # find the hyperparameters using optuna and cross-validation on train/valid
-            trial=MLmodel_opt_learner.hyperopt(X_trainvalid,Y_trainvalid,epochs=epochs,num_optuna_trials=num_optuna_trials, model_name=model_name,randnum=randnum_split)
+            trial=MLmodel_opt_learner.hyperopt(
+                X_trainvalid,
+                Y_trainvalid,
+                epochs=epochs,
+                num_optuna_trials=num_optuna_trials,
+                 model_name=model_name,
+                 randnum=randnum_split,
+                 device=device
+                 )
             lr_max=1e-3
             # formatting the selected hyperparameters to put in the model
             params=trial.params
@@ -111,7 +119,21 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             for randnum in range(0,3):
                 print("  Random seed: ",randnum)
                 # Rerun the model on train/test with the selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
+                runtime, learner = MLmodel_opt_learner.model_block(
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    splits=splits_9010,
+                    randnum=randnum,
+                    epochs=epochs,
+                    params=params,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    ESPatience=ESPatience,
+                    device=device
+                    )
                 ## Need to scale X
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
@@ -161,7 +183,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))
