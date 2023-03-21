@@ -264,7 +264,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             instance_scores=[]
             
             # find valid_loss for this fold and these hyperparameters
-            for randnum_train in range(1,3):
+            for randnum_train in range(0,3):
                 print("  Random seed: ",randnum_train)
                 trial_score_instance= objective(trial)
                 instance_scores.append(trial_score_instance)

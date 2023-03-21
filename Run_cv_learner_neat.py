@@ -102,8 +102,13 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             gamma=params.get('gamma')
             for key in rem_list:
                 del params[key]
-            output=[]
-            for randnum in range(1,3):
+
+            colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","batch_size","alpha","gamma"]
+            colnames.extend(list(all_params.keys()))
+            output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+
+            for randnum in range(0,3):
                 print("  Random seed: ",randnum)
                 # Rerun the model on train/test with the selected hyperparameters
                 runtime, learner = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
@@ -122,10 +127,18 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,batch_size,alpha,gamma]
                 outputs.extend(list(all_params.values()))
-                colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","batch_size","alpha","gamma"]
-                colnames.extend(list(all_params.keys()))
-                output_rand = pd.DataFrame([outputs], columns=colnames)
-                output=output.append(output_rand)
+
+                entry = pd.DataFrame([outputs], columns=colnames)
+                #df.loc['y'] = pd.Series({'a':1, 'b':5, 'c':2, 'd':3})
+                #output=output.append(output_rand, ignore_index=True)
+
+                
+                # entry = pd.DataFrame.from_dict({
+                #     "firstname": ["John"],
+                #     "lastname":  ["Johny"]
+                # })
+
+                output = pd.concat([output, entry], ignore_index=True)
                 if imp=="True":
                     learner.feature_importance(show_chart=False, key_metric_idx=4)
             output.to_csv(filepathout, index=False)
@@ -137,9 +150,14 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             batch_size=64
             alpha=0.5
             gamma=3
-            output=[]
+            # output=[]
+
+            colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"]
+            # colnames.extend(list(all_params.keys()))
+            output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
             ## instances
-            for randnum in range(1,3):
+            for randnum in range(0,3):
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
@@ -157,8 +175,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,lr_max,batch_size,alpha,gamma]
-                output_rand = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"])
-                output=output.append(output_rand)
+                entry = pd.DataFrame([outputs], columns=colnames)
+                output = pd.concat([output, entry], ignore_index=True)
+                # output=output.append(output_rand, ignore_index=True)
                 if imp=="True":
                     learner.feature_importance(show_chart=False, key_metric_idx=4)
             output.to_csv(filepathout, index=False)

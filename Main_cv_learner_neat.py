@@ -27,8 +27,8 @@ from tsai.tslearner import TSClassifier
 # load in arguments from command line
 name = "data_2real1bigdet" #sys.argv[1]#
 model_name="InceptionTime"#sys.argv[2]#
-randnum_split=4#int(sys.argv[3])
-epochs=10#int(sys.argv[4])
+randnum_split=3#int(sys.argv[3])
+epochs=1#int(sys.argv[4])
 num_optuna_trials =10# int(sys.argv[5])
 hype= "False"# sys.argv[6]
 imp = "False"
