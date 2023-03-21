@@ -291,6 +291,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         n_trials=num_optuna_trials,
         show_progress_bar=True
         )
+    print(study.Summary)
+    print(study.get_all_study_summaries)
     
     pruned_trials= [t for t in study.trials if t.state ==optuna.trial.TrialState.PRUNED]
     complete_trials=[t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
