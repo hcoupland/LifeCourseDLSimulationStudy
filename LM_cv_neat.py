@@ -69,7 +69,6 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     
     # random seed
     Data_load.random_seed(randnum, True)
-    rng = np.random.default_rng(randnum)
 
     # sclae and one-hot the data
     #X_scaled=Data_load.prep_data(X, splits)
