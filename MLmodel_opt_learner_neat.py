@@ -21,7 +21,7 @@ from torch.utils.data import WeightedRandomSampler
 from sklearn.utils.class_weight import compute_class_weight
 from optuna.integration import FastAIPruningCallback
 from fastai.vision.all import *
-import Data_load_neat as Data_load
+import data_loading as Data_load
 
 
 #import rpy2.rinterface
@@ -154,7 +154,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             #     # fit the model to the train/test data
-            Data_load.random_seed(randnum_train)
+            Data_load.set_random_seed(randnum_train)
 
             # print(weights.get_device())
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
@@ -208,7 +208,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         batch_size=trial.suggest_categorical('batch_size',[32,64,128])
 
         # # set random seed
-        # Data_load.random_seed(randnum,True)
+        # Data_load.set_random_seed(randnum,True)
         # torch.set_num_threads(18)
         
         # divide train data into 5 fold
@@ -252,7 +252,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
             # print(class_weights)
 
-            # Data_load.random_seed(randnum)
+            # Data_load.set_random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
@@ -298,7 +298,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     
     # set random seed
-    Data_load.random_seed(randnum)
+    Data_load.set_random_seed(randnum)
     torch.set_num_threads(18)
 
     # create optuna study
@@ -365,7 +365,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(class_weights)
     sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
 
-    # Data_load.random_seed(randnum,True)
+    # Data_load.set_random_seed(randnum,True)
 
     # define batches
     dls=TSDataLoaders.from_dsets(
@@ -392,7 +392,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(dls.vars)
 
     # fit the model to the train/test data
-    Data_load.random_seed2(randnum,dls=dls)
+    Data_load.set_random_seed(randnum,dls=dls)
     start=timeit.default_timer()
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
@@ -476,7 +476,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 
     # print('dsklthsdiyuerop')
 
-    # Data_load.random_seed(randnum,True)
+    # Data_load.set_random_seed(randnum,True)
     
     dls=TSDataLoaders.from_dsets(
         dsets.train,
@@ -503,7 +503,7 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     print(dls.vars)
     #weights=torch.tensor(compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]]), dtype=torch.float)
 
-    Data_load.random_seed2(randnum,dls=dls)
+    Data_load.set_random_seed(randnum,dls=dls)
     start=timeit.default_timer()
 
     #model = InceptionTimePlus(dls.vars, dls.c)

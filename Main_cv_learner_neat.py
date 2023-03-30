@@ -1,4 +1,4 @@
-import Data_load_neat as Data_load
+import data_loading as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
 import torch
@@ -43,14 +43,14 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
     X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath,subset=subset)
 
     ## Function to obtain the train/test split
-    X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+    X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,y=y_raw,randnum=randnum_split)
 
 
     # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
     # y_train, y_test = y[splits[0]], y[splits[-1]]
 
     ## Now scale all the data for ease (can fix this later)
-    X_scaled=Data_load.prep_data(X_raw,splits)
+    X_scaled=Data_load.preprocess_data(X_raw,splits)
 
     # FIXME: Should this be X_scaled[splits[-1]] for the second? And if so, why?
     X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]

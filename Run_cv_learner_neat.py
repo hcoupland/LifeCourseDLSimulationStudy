@@ -7,7 +7,7 @@ import torch
 
 import copy
 
-import Data_load_neat as Data_load
+import data_loading as Data_load
 import logistic_regression as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
@@ -53,7 +53,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
             LR00_TN = confusion_mat[0, 0]
 
             # Formatting and saving the output
-            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, precision, recall, f1_svalue, auc, aps, LR00_TN, LR01_FP, LR10_FN, LR11_TP, runtime]
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, precision, recall, f1_value, auc, aps, LR00_TN, LR01_FP, LR10_FN, LR11_TP, runtime]
             output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
             output.to_csv(filepathout, index=False)
         print(output)
@@ -86,7 +86,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
         
 
         ## Set seed
-        Data_load.random_seed(randnum_split)
+        Data_load.set_random_seed(randnum_split)
         torch.set_num_threads(18)
 
         # FIXME: Here I Split out 10 percent of the trainvalid set to use as a final validation set - not sure if there is a better way to do this - potentially I should do it at the start?
@@ -232,3 +232,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     #sys.stdout.close()
     print(filepathout)
     return output
+
+
+    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y)
+    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
+    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
+    #sampler=ImbalancedDatasetSampler(dsets.train)

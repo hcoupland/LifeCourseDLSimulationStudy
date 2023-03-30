@@ -1,6 +1,5 @@
-## Script containg functions to load, standardize, one-hot the data
-import copy
-import math
+"""This module contains functions to load, split, standardize and add stochasticity."""
+
 import random
 from collections import Counter
 from tsai.all import *
@@ -8,12 +7,11 @@ from tsai.all import *
 import numpy as np
 import torch
 
-import imblearn
-
-from torchsampler import ImbalancedDatasetSampler
-from torch.utils.data import WeightedRandomSampler
-from sklearn.utils.class_weight import compute_class_weight
-from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
+# import imblearn
+# from torchsampler import ImbalancedDatasetSampler
+# from torch.utils.data import WeightedRandomSampler
+# from sklearn.utils.class_weight import compute_class_weight
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from fastai.vision.all import *
 from tsai.imports import *
 from tsai.utils import *
@@ -21,177 +19,309 @@ from tsai.data.core import TSDataLoaders, TSDatasets
 from tsai.data.preprocessing import TSStandardize
 from tsai.data.validation import get_splits
 
-import torch.nn.functional as F
+import logging
 
+def set_random_seed(seed_value: int, dls=None, use_cuda: bool = True) -> None:
+    """
+    Set the random seed for various Python packages to ensure reproducibility.
 
-def random_seed(seed_value, use_cuda=True):
-    #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
-    np.random.seed(seed_value)  # Numpy vars
-    torch.manual_seed(seed_value)  # PyTorch vars
-    random.seed(seed_value)  # Python
-    if use_cuda:  # GPU vars
+    Parameters:
+    -----------
+    - seed_value (int): The seed value to be set.
+    - dls (Optional[fastai.data.core.DataLoaders]): A `DataLoaders` object to set the random seed for.
+                                                     Defaults to None.
+    - use_cuda (bool): A boolean indicating whether CUDA (GPU) should be used. 
+                       Defaults to True.
+
+    Returns:
+    --------
+    None
+
+    Notes:
+    ------
+    This function sets the random seed for the following packages:
+        - numpy
+        - PyTorch
+        - Python's built-in random library
+        - PyTorch GPU variables (if use_cuda=True)
+
+    Additionally, if a `DataLoaders` object is provided, the random seed is set for it as well.
+    """
+    np.random.seed(seed_value)
+    torch.manual_seed(seed_value)
+    random.seed(seed_value)
+    if dls is not None:
+        dls.rng.seed(seed_value)
+    if use_cuda:
         torch.cuda.manual_seed(seed_value)
         torch.cuda.manual_seed_all(seed_value)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
-    print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
+    print(f"Random state set: {seed_value}, CUDA used: {use_cuda}")
 
-def random_seed2(seed_value,dls, use_cuda=True):
-    #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
-    np.random.seed(seed_value)  # Numpy vars
-    torch.manual_seed(seed_value)  # PyTorch vars
-    random.seed(seed_value)  # Python
-    dls.rng.seed(seed_value) #added this line
-    if use_cuda:  # GPU vars
-        torch.cuda.manual_seed(seed_value)
-        torch.cuda.manual_seed_all(seed_value)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
 
-def onehot_func(X):
-    #function to one hot the data
-    N=X.shape[0]
-    D=X.shape[1]
-    T=X.shape[2]
-    ## Fit the encoder to the train data
-    encoder=OneHotEncoder()
-    Xcopy=X.copy()
-    Xcopy=torch.tensor(Xcopy)
-    Xcopy=Xcopy.to(torch.int64)
-    Xcopy=np.transpose(Xcopy,(0,2,1))
-    Xcopy=np.reshape(Xcopy,(-1,D),order='A')
-    encoder.fit(Xcopy)
-    cats=encoder.categories_
-    num_cat=[len(x) for x in cats]
-    Doh=sum(num_cat)
+def load_data(name, filepath, subset=-1):
+    """
+    Load input data and labels from files.
 
-    ## one hot the data
-    Xoh=X.copy()
-    Xoh=torch.tensor(Xoh)
-    Xoh=Xoh.to(torch.int64) 
-    Xoh=np.transpose(Xoh,(0,2,1))
-    Xoh=np.reshape(Xoh,(-1,D),order='A')
-    Xoh=encoder.transform(Xoh).toarray()
-    Xoh=np.reshape(Xoh,(N,T,Doh))
-    Xoh=np.transpose(Xoh,(0,2,1))
+    Parameters:
+    name (str): The name of the dataset.
+    filepath (str): The file path where the input data and labels are stored.
+    subset (int, optional): The number of samples to load from the dataset.
+
+    Returns:
+    X_raw (numpy array): The input data of shape (n_samples, n_features, n_timepoints).
+    y (numpy array): The labels of shape (n_samples,).
+    """
+
+    # Validate input parameters
+    if not isinstance(name, str):
+        raise TypeError("name must be a string")
+    if not isinstance(subset, int):
+        raise TypeError("subset must be an integer")
+
+    # Load input data
+    try:
+        X_raw = np.load(f"{filepath}/input_data/{name}_X.npy").astype(np.float32)
+    except FileNotFoundError:
+        logging.error(f"{name}_X.npy not found in {filepath}")
+        return None, None
+
+    # Load labels
+    try:
+        y_raw = np.load(f"{filepath}/input_data/{name}_YH.npy")
+    except FileNotFoundError:
+        logging.error(f"{name}_YH.npy not found in {filepath}")
+        return None, None
+
+    # y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
+    Y_raw = np.squeeze(y_raw)
+    y = Y_raw[:, -1]
+
+    # Subset data if required
+    if subset > 0:
+        X_raw = X_raw[:subset,:,:]
+        y = y[:subset]
+
+    print(f'Shape of X = {X_raw.shape}; Shape of y = {y.shape}')
+
+    return X_raw, y
+
+def onehot_encode(X):
+    """
+    One-hot encodes categorical features in the input data X.
+
+    Args:
+        X: A 3D numpy array of shape (num_samples, num_features, num_timepoints), where num_samples is the number of samples, 
+            num_features is the number of features, and num_timepoints is the number of time steps.
+
+    Returns:
+        A 3D numpy array of shape (num_samples, num_oh_features, num_timepoints), where num_oh_features is the total number of one-hot
+        encoded features after one-hot encoding all categorical features in X.
+    """
+
+    # Reshape the input array
+    num_samples, num_features, num_timepoints = X.shape
+    X_reshaped = X.transpose(0, 2, 1).reshape(-1, num_features)
+
+    # One-hot encode the data
+    encoder = OneHotEncoder()
+    X_encoded = encoder.fit_transform(X_reshaped).toarray()
+
+    # Reshape the encoded array
+    num_oh_features = X_encoded.shape[1]
+    X_reshaped_encoded = X_encoded.reshape(num_samples, num_timepoints, num_oh_features).transpose(0, 2, 1)
+
+    return X_reshaped_encoded
+
+    # ## Fit the encoder to the train data
+    # encoder = OneHotEncoder()
+    # Xcopy = torch.from_numpy(X).to(torch.int64)
+    # Xcopy = np.transpose(Xcopy, (0, 2, 1))
+    # Xcopy = np.reshape(Xcopy, (-1, num_features), order='A')
+    # encoder.fit(Xcopy)
+    # cats = encoder.categories_
+    # num_cat = [len(x) for x in cats]
+    # num_oh_features = sum(num_cat)
+
+    # ## one hot the data
+    # X_onehot = torch.from_numpy(X).to(torch.int64)
+    # X_onehot = np.transpose(X_onehot, (0, 2, 1))
+    # X_onehot = np.reshape(X_onehot, (-1, num_features), order='A')
+    # X_onehot = encoder.transform(X_onehot).toarray()
+    # X_onehot = np.reshape(X_onehot, (num_samples, num_timepoints, num_oh_features))
+    # X_onehot = np.transpose(X_onehot, (0, 2, 1))
+    # return X_onehot
+
+
+
+    # # One-hot encode the data
+    # encoder = OneHotEncoder()
+    # X_encoded = encoder.fit_transform(X_reshaped).toarray()
+
+    # # Reshape the encoded array
+    # num_oh_features = X_encoded.shape[1]
+    # X_reshaped_encoded = X_encoded.reshape(num_samples, num_timepoints, num_oh_features).transpose(0, 2, 1)
+
+
+
+def standardize_data(X, splits):
+    """
+    Function to standardize the data using StandardScaler from scikit-learn. 
+    Scales the train and validation/test sets separately based on the train set statistics.
     
-    ## one-hot encode the train data
-    #Xtrain=X[splits[0]]
-    #Xtrain=torch.tensor(Xtrain)
-    #Xtrain=Xtrain.to(torch.int64)
-    #Xtrain=np.transpose(Xtrain,(0,2,1))
-    #Xtrain=np.reshape(Xtrain,(-1,D),order='A')
-    #Xtrain=encoder.transform(Xtrain).toarray()
-    #Xtrain=np.reshape(Xtrain, (len(splits[0]),T,Doh))
-    #Xtrain=np.transpose(Xtrain,(0,2,1))
+    Parameters:
+    - X: numpy array of shape (num_samples, num_features, num_timepoints) containing the input features
+    - splits: tuple of numpy arrays containing the train, validation, and test indices
     
-    ## one hot the valid/test data
-    #Xvalid=X[splits[1]]
-    #Xvalid=torch.tensor(Xvalid)
-    #Xvalid=Xvalid.to(torch.int64)
-    #Xvalid=np.transpose(Xvalid,(0,2,1))
-    #Xvalid=np.reshape(Xvalid,(-1,D),order='A')
-    #Xvalid=encoder.transform(Xvalid).toarray()
-    #Xvalid=np.reshape(Xvalid,(len(splits[1]),T,Doh))
-    #Xvalid=np.transpose(Xvalid,(0,2,1))
-   
-    # Concatenate the matrices back together
-    #Xoh = np.concatenate([Xtrain,Xvalid])
-        
-    return Xoh
+    Returns:
+    - X_stnd: numpy array of shape (num_samples, num_features, num_timepoints) containing the standardized input features
+    """
+    scaler = StandardScaler()#MinMaxScaler()
 
-def Standard_func(X,splits):
-    #function to standardize the data
-    scaler=StandardScaler()#MinMaxScaler()
-    N=X.shape[0]
-    D=X.shape[1]
-    T=X.shape[2]
-    
-    # fit the scaler and scale the train data
-    Xtrain=X[splits[0]]
-    Xtrain=np.transpose(Xtrain,(0,2,1))
-    Xtrain=np.reshape(Xtrain,(-1,D),order='A')
-    Xtrain=scaler.fit_transform(Xtrain) ##scale
-    Xtrain=np.reshape(Xtrain, (len(splits[0]),T,D)) ##scale
-    Xtrain=np.transpose(Xtrain,(0,2,1))
+    # Defining the dimensions
+    num_samples, num_features, num_timepoints = X.shape
 
-    # scale the tezt/valid data according to the fitted scaler
-    Xvalid=X[splits[1]]
-    Xvalid=np.transpose(Xvalid,(0,2,1))
-    Xvalid=np.reshape(Xvalid,(-1,D),order='A')
-    Xvalid=scaler.transform(Xvalid) ##scale
-    Xvalid=np.reshape(Xvalid, (len(splits[1]),T,D)) ##scale
-    Xvalid=np.transpose(Xvalid,(0,2,1))
+    # Fit the scaler encoder and scale the train data
+    X_train = X[splits[0]]
+    X_train = np.transpose(X_train, (0, 2, 1))
+    X_train = np.reshape(X_train, (-1, num_features), order='A')
+    X_train = scaler.fit_transform(X_train)
+    X_train = np.reshape(X_train,  (len(splits[0]), num_timepoints, num_features))
+    X_train = np.transpose(X_train, (0, 2, 1))
 
-    # bring the data back together
-    Xstnd=np.zeros((N,D,T))
-    Xstnd[splits[0]]=Xtrain
-    Xstnd[splits[1]]=Xvalid
-    #Xtest=X[splits[2]]
-    #Xtest=np.transpose(Xtest,(0,2,1))
-    #Xtest=np.reshape(Xtest,(-1,D),order='A')
-    #Xtest=scaler.transform(Xtest) ##scale
-    #Xtest=np.reshape(Xtest, (len(splits[2]),T,D)) ##scale
-    #Xtest=np.transpose(Xtest,(0,2,1))
+    # X_train = scaler.fit_transform(X_train.reshape(-1, X.shape[-1]))
+    # X_train = X_train.reshape((len(splits[0]), X.shape[1], X.shape[2]))
 
-    #Xstnd = np.concatenate([Xtrain,Xvalid])
-    return Xstnd
+    # Scale the valid data using the fitted scaler
+    X_valid = X[splits[1]]
+    X_valid = np.transpose(X_valid, (0, 2, 1))
+    X_valid = np.reshape(X_valid, (-1, num_features), order='A')
+    X_valid = scaler.transform(X_valid)
+    X_valid = np.reshape(X_valid,  (len(splits[1]), num_timepoints, num_features))
+    X_valid = np.transpose(X_valid, (0, 2, 1))
 
-def load_data(name,filepath,subset=-1):
-    ## function to load all the data from the filepath
+    # X_valid = scaler.transform(X_valid.reshape(-1, X.shape[-1]))
+    # X_valid = X_valid.reshape((len(splits[1]), X.shape[1], X.shape[2]))
 
-    X_raw = np.load("".join([filepath,"input_data/",name, "_X.npy"])).astype(np.float32)
+    # Combine the train and valid data
+    X_stnd = np.zeros((num_samples, num_features, num_timepoints))
+    X_stnd[splits[0]] = X_train
+    X_stnd[splits[1]] = X_valid
 
-    y_raw = np.load("".join([filepath,"input_data/",name, "_YH.npy"]))
-
-    y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
-
-    print(X_raw.shape, y_raw.shape, y_test.shape)
-
-    #filepath="/home/fkmk708805/data/workdata/708805/helen/Proc_data/"
-
-    Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",name, "_YH.npy"])))
-    Y = Y_raw[:, np.shape(Y_raw)[1] - 1]
-    print(Y.shape)
+    # # Combine the train and valid data
+    # X_stnd = np.concatenate([X_train, X_valid], axis=0)
+    return X_stnd
 
 
-    ### Helen messing around
-    if subset>0:
-        X_raw=X_raw[:subset,:,:]
-        Y=Y[:subset]
-    ## Helen stop messing around
+# def feature_encoding(X):
+#     """
+#     Determines which features to standardize and which to one-hot encode based on the number of unique values in each feature.
 
-    return X_raw, Y
+#     Args:
+#         X (numpy array): Input data of shape (num_samples, num_features, num_timepoints), where num_samples is the number of samples, num_features is the number of features,
+#                          and num_timepoints is the number of timesteps.
 
-def prep_data(X, splits):
-    ## function to one-hot and standardize the data depnding on the variable type
+#     Returns:
+#         oh_vars (list): List of indices of features to one-hot encode.
+#         stnd_vars (list): List of indices of features to standardize.
+#     """
+#     oh_vars = []
+#     stnd_vars = []
+#     for i in range(X.shape[1]):
+#         if len(np.unique(X[:, i, :])) > 10:  # threshold for one-hot encoding
+#             stnd_vars.append(i)
+#         else:
+#             oh_vars.append(i)
+#     return oh_vars, stnd_vars
 
-    # which variables will be one-hot encoded and which will be standardized
-    oh_vars=[1,2,3,4,5,6,7,8]
-    stnd_vars=[0]
 
-    # FIXME: worth noting that I am not scaling at the moment because I am not sure that this code works
-    Xoh=X[:,oh_vars,:]
-    Xstnd=X[:,stnd_vars,:]
-    Xoh_out=onehot_func(Xoh)
-    Xstnd_out=Standard_func(Xstnd,splits)
+def preprocess_data(X, splits):
+    """
+    Function to preprocess data by one-hot encoding and standardizing features.
 
-    X_scaled=np.concatenate([Xoh_out,Xstnd_out],axis=1)
+    Parameters:
+        X (numpy.ndarray): input data of shape (num_samples, num_features, num_timepoints)
+        splits (tuple): A tuple containing the train and validation indices.
+
+    Returns:
+        - X_scaled (numpy.ndarray): preprocessed data of shape (num_samples, num_features', num_timepoints)
+    """
+
+    # Define which variables will be one-hot encoded
+    oh_vars = [1, 2, 3, 4, 5, 6, 7, 8]
+    num_samples, num_features, num_timepoints = X.shape
+    stnd_vars = list(set(range(num_features)) - set(oh_vars))
+    # stnd_vars=[0]
+
+    # oh_vars, stnd_vars = feature_encoding(X)
+
+    # One-hot encoding
+    X_onehot = X[:, oh_vars, :]
+    X_onehot_out=onehot_encode(X_onehot)
+
+    # Standard scaling
+    X_stnd = X[:, stnd_vars, :]
+    X_stnd_out = standardize_data(X_stnd, splits)
+
+    # Concatenate the one-hot encoded and standardized data
+    X_scaled = np.concatenate([X_onehot_out, X_stnd_out], axis=1)
     return X_scaled
 
-def split_data(X, Y,randnum):
-    # function to load the data and do the original train/test split
 
-    ## Set seed
-    random_seed(randnum)
-    torch.set_num_threads(18)
+    # # One-hot encoding
+    # enc = OneHotEncoder(handle_unknown='ignore', sparse=False)
+    # X_oh = enc.fit_transform(X[:, oh_vars, :].reshape(-1, X.shape[2]))
 
-    #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
+    # # Standard scaling
+    # scaler = StandardScaler()
+    # X_stnd = scaler.fit_transform(X[:, stnd_vars, :].reshape(-1, X.shape[2]))
 
-    ## split out the test set
+
+    # Standardize specified columns
+    scaler = StandardScaler()
+    X_stnd = X[:, stnd_vars, :]
+    X_train = X[splits[0]]
+    X_train = np.transpose(X_train, (0, 2, 1))
+    X_train = np.reshape(X_train, (-1, len(stnd_vars)), order='A')
+    X_train = scaler.fit_transform(X_train)
+    X_train = np.reshape(X_train, (len(splits[0]), -1, len(stnd_vars)))
+    X_train = np.transpose(X_train, (0, 2, 1))
+    X_valid = X[splits[1]]
+    X_valid = np.transpose(X_valid, (0, 2, 1))
+    X_valid = np.reshape(X_valid, (-1, len(stnd_vars)), order='A')
+    X_valid = scaler.transform(X_valid)
+    X_valid = np.reshape(X_valid, (len(splits[1]), -1, len(stnd_vars)))
+    X_valid = np.transpose(X_valid, (0, 2, 1))
+    X_stnd = np.zeros(X.shape)
+    X_stnd[:, oh_vars, :] = X_oh_out
+    X_stnd[:, stnd_vars, :][splits[0]] = X_train
+    X_stnd[:, stnd_vars, :][splits[1]] = X_valid
+
+    X_scaled = X_stnd
+
+    return X_scaled
+
+
+def split_data(X, y, randnum):
+    """
+    Splits the data into training and validation sets, and returns the split arrays.
+
+    Parameters:
+        X (numpy array): Input features
+        y (numpy array): Target labels
+        randnum (int): Random seed for reproducibility
+
+    Returns:
+        X_train (numpy array): Training set input features
+        y_train (numpy array): Training set target labels
+        X_valid (numpy array): Validation set input features
+        y_valid (numpy array): Validation set target labels
+    """
+
+    # Split the data into training and validation sets with a 80/20 ratio
     splits = get_splits(
-            Y,
+            y,
             valid_size=0.2,
             stratify=True,
             shuffle=True,
@@ -200,89 +330,122 @@ def split_data(X, Y,randnum):
             random_state=randnum
             )
     X_trainvalid, X_test = X[splits[0]], X[splits[1]]
-    Y_trainvalid, Y_test = Y[splits[0]], Y[splits[1]]
+    y_trainvalid, y_test = y[splits[0]], y[splits[1]]
 
-    print(Counter(Y), Counter(Y_trainvalid), Counter(Y_test))
+    print("Training & validation data shape:", X_trainvalid.shape, y_trainvalid.shape)
+    print("Testing data shape:", X_test.shape, y_test.shape)
+    print(f'Positive count in y = {Counter(y)}; Positive count in y_trainvalid = {Counter(y_trainvalid)}; Positive count in y_test = {Counter(y_test)}')
 
-    #print(Counter(y.flatten()), Counter(y_train.flatten()), Counter(y_test.flatten())) ## if Y has shape (10000,1) instead of (10000,)
+    return X_trainvalid, y_trainvalid, X_test, y_test, splits
 
-    return X_trainvalid, Y_trainvalid, X_test, Y_test, splits
+def add_stochasticity(y, stoc_percent, randnum):
+    """
+    Adds stochasticity to a binary target vector Y by randomly flipping 
+    stoc_percent * 100% of the positive class and negative class.
 
-    #X_scaled=prep_data(X,splits)
-    
-    #X3d=to3d(X_scaled)
-    #tfms = [None, [Categorize()]]
-    #dsets = TSDatasets(X3d, Y, tfms=tfms, splits=splits[:-1], inplace=True)
-    
-    #print(Counter(Y))
-    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y)
-    #print(class_weights)
-    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-    #print(class_weights)
-    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
-    #sampler=ImbalancedDatasetSampler(dsets.train)
-    #dls = TSDataLoaders.from_dsets(
-    #                    dsets.train,
-    #                    dsets.valid,
-    #                    sampler=sampler,
-    #                    shuffle=False,
-    #                    bs=[64,128], ## 64
-    #                    batch_tfms=(TSStandardize(by_var=True),),
-    #                    num_workers=0,
-    #                )
+    Args:
+        Y: A 1D numpy array of shape (num_samples,), where num_samples is the number of samples.
+        stoc_percent: A float between 0 and 1 representing the percentage of positive 
+              and negative samples to be randomly flipped.
+        randnum: An integer used to set the random seed for reproducibility.
 
-def add_stoc(Y,stoc,randnum):
-    # function to add stochasticity to Y
-    ## Set seed
-    random_seed(randnum)
-    torch.set_num_threads(18)
+    Returns:
+        A 1D numpy array of shape (num_samples,) with stochasticity added to the input Y.
+    """
 
-    #copies Y
-    Y_outcheck=copy.copy(Y)
+    # Set random seed
+    set_random_seed(randnum)
 
-    # Selects the number of positive values that need to be switched
-    num1s=np.sum(Y_outcheck)
-    num10=math.ceil(stoc*num1s)
-    which1=np.where(Y_outcheck==1)[0]
-    which0=np.where(Y_outcheck==0)[0]
+    # Get indices of 1s and 0s
+    idx_ones = np.where(y == 1)[0]
+    idx_zeros = np.where(y == 0)[0]
+
+    # Select the number of positive values that need to be switched
+    num_ones = idx_ones.shape[0]
+    num_switch10 = int(np.ceil(stoc_percent*num_ones))
+
+    # # Copy y
+    # y_outcheck = copy.copy(y)
+
+    # # Count number of positive values
+    # num_ones = np.sum(y_outcheck)
+
+    # # Calculate number of 1s to switch
+    # num10 = math.ceil(stoc * num_ones)
 
     # Randomly selects the correct number of 1s/0s that will be switched to 0s/1s
-    which10=random.sample(list(which1),num10)
-    which01=random.sample(list(which0),num10)
+    # which10 = random.sample(list(which1), num10)
+    # which01 = random.sample(list(which0), num10)
+    idx_switch10 = np.random.choice(idx_ones, size=num_switch10, replace=False)
+    idx_switch01 = np.random.choice(idx_zeros, size=num_switch10, replace=False)
 
-    Y_outcheck2=copy.copy(Y_outcheck)
-    # Switches the 1s to 0s and 0s to 1s
-    Y_outcheck2[which10]=0
-    Y_outcheck2[which01]=1
-    return Y_outcheck2
+    # Make a copy of the input array
+    y_stoc = np.copy(Y)
 
+    # Add stochasticity
+    y_stoc[idx_switch10] = 0
+    y_stoc[idx_switch01] = 1
+    return y_stoc
 
+def stoc_data(y: np.ndarray, X: np.ndarray, stoc_percent: float, randnum: int) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray], TSDataLoaders]:
+    """
+    Splits the input data into train, validation and test sets, adds stochasticity to the train and validation set,
+    and creates and returns a `TSDataLoaders` object for the train and validation sets.
 
-def stoc_data(Y, X,stoc,randnum):
-    ## function to add stochasticity to Y and adjust splits
-    ## Split Y into (train + validation) and test with 80:20 ratio
-    splits = get_splits(Y, valid_size=0.4, stratify=True, random_state=23, shuffle=True, test_size=0.0)
-    #print(splits)
+    Args:
+        y (np.ndarray): 1D array with the target variable.
+        X (np.ndarray): 3D array with the input data in the format (samples, variables, time steps).
+        stoc_percent (float): The proportion of the positive values in the target variable that will be randomly changed.
+        randnum (int): The seed for the random number generator.
 
-    Ytv=copy.copy(Y[splits[0]])
-    Xtv=copy.copy(X[splits[0],:,:])
-    ## Add stochasticity to (train + validation) together
-    Ytv_stoc=add_stoc(Ytv,stoc=stoc,randnum=randnum)
+    Returns:
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray], TSDataLoaders]: A tuple with the following elements:
+        
+        - X_new: 3D array with the input data for the train, validation and test sets after splitting and adding stochasticity.
+        - X_new3d: The same as `X_new`, but reshaped to 3D format.
+        - y_stoc: 1D array with the target variable for the train, validation and test sets after splitting and adding stochasticity.
+        - yorg: 1D array with the original target variable before splitting and adding stochasticity.
+        - splits_new: A tuple with 3 arrays representing the new splits for the train, validation and test sets.
+        - dls: A `TSDataLoaders` object for the train and validation sets with the specified batch sizes and transforms.
+    """
 
-    ## Split (train + validation) into train and validation with 33.333333:66.666666
-    sec_splits = get_splits(Ytv_stoc, valid_size=0.33333333, stratify=True, random_state=23, shuffle=True, test_size=0.0)
+    # Split y into (train + validation) and test with 80:20 ratio
+    splits = get_splits(y, valid_size=0.4, stratify=True, random_state=23, shuffle=True, test_size=0.0)
 
-    ## Arrange Y and X for new splits
-    Y_stoc=np.concatenate((Ytv_stoc[sec_splits[0]],Ytv_stoc[sec_splits[1]],Y[splits[1]]))
-    Yorg=np.concatenate((Ytv[sec_splits[0]],Ytv[sec_splits[1]],Y[splits[1]]))
-    X_new=np.concatenate((Xtv[sec_splits[0],:,:],Xtv[sec_splits[1],:,:],X[splits[1],:,:]))
-    X_new3d = to3d(X_new)
+    # Copy data
+    y_trainvalid = y[splits[0]].copy()
+    X_trainvalid = X[splits[0]].copy()
 
-    ## Define the new overall split (not just for train/validation)
-    splits_new=get_splits(Y_stoc, n_splits=1, valid_size=np.shape(Ytv[sec_splits[1]])[0], test_size=np.shape(Y[splits[1]])[0], shuffle=False)
+    # Add stochasticity to (train + validation) together
+    y_stoc_trainvalid = add_stochasticity(y_trainvalid, stoc_percent=stoc_percent, randnum=randnum)
 
+    # Split (train + validation) into train and validation with 33.333333:66.666666
+    sec_splits = get_splits(y_stoc_trainvalid, valid_size=0.33333333, stratify=True, random_state=randnum, shuffle=True, test_size=0.0)
+
+    # Split into training and validation sets
+    X_train = X_trainvalid[sec_splits[0]]
+    X_valid = X_trainvalid[sec_splits[1]]
+    X_test = X[splits[1]]
+    y_train = y_trainvalid[sec_splits[0]]
+    y_valid = y_trainvalid[sec_splits[1]]
+    y_test = y[splits[1]]
+    y_stoc_train = y_stoc_trainvalid[sec_splits[0]]
+    y_stoc_valid = y_stoc_trainvalid[sec_splits[1]]
+
+    # Concatenate arrays
+    y_stoc = np.concatenate((y_stoc_train, y_stoc_valid, y[splits[1]]))
+    yorg = np.concatenate((y_train, y_valid, y_test))
+    X_new = np.concatenate((X_train, X_valid, X_test))
+    X_new3d  =  to3d(X_new)
+
+    # Define the new overall split (not just for train/validation)
+    splits_new = get_splits(y_stoc, n_splits=1, valid_size=np.shape(y_valid)[0], test_size=np.shape(y[splits[1]])[0], shuffle=False)
+
+    # Define transformations
     tfms = [None, [Categorize()]]
-    dsets = TSDatasets(X_new3d, Y_stoc, tfms=tfms, splits=splits_new, inplace=True)
+
+    # Define datasets and dataloaders
+    dsets = TSDatasets(X_new3d, y_stoc, tfms=tfms, splits=splits_new, inplace=True)
     dls = TSDataLoaders.from_dsets(
                         dsets.train,
                         dsets.valid,
@@ -290,6 +453,4 @@ def stoc_data(Y, X,stoc,randnum):
                         batch_tfms=[TSStandardize(by_var=True)],
                         num_workers=0,
                     )
-    return X_new,X_new3d,Y_stoc,Yorg,splits_new,dls
-
-
+    return X_new, X_new3d, y_stoc, yorg, splits_new, dls
