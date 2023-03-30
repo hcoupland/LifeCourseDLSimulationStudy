@@ -8,7 +8,7 @@ import torch
 import copy
 
 import Data_load_neat as Data_load
-import LM_cv_neat as LM_cv
+import logistic_regression as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
 
@@ -45,15 +45,15 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     if model_name=="LR":
         # fit the logistic regression model
         for randnum in range(1,3):
-            runtime, acc, auc, precision, recall, f1, cm = LM_cv.LRmodel_fit(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,randnum=randnum)
+            runtime, acc, auc, precision, recall, f1_value, aps, confusion_mat = LM_cv.fit_logistic_regression_model(X_trainvalid=X_trainvalid,y_trainvalid=Y_trainvalid,X_test=X_test,y_test=Y_test,randnum=randnum)
             
-            LR11_TP = cm[1, 1]
-            LR01_FP = cm[0, 1]
-            LR10_FN = cm[1, 0]
-            LR00_TN = cm[0, 0]
+            LR11_TP = confusion_mat[1, 1]
+            LR01_FP = confusion_mat[0, 1]
+            LR10_FN = confusion_mat[1, 0]
+            LR00_TN = confusion_mat[0, 0]
 
             # Formatting and saving the output
-            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00_TN, LR01_FP, LR10_FN, LR11_TP, runtime]
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, precision, recall, f1_svalue, auc, aps, LR00_TN, LR01_FP, LR10_FN, LR11_TP, runtime]
             output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
             output.to_csv(filepathout, index=False)
         print(output)
