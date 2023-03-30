@@ -12,12 +12,29 @@ import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
 
+def get_architecture(model_name):
+    # Define a dictionary that maps model name to architecture class
+    architectures = {
+        'LR': None,
+        'LSTMFCN': LSTM_FCNPlus,
+        'TCN': TCN,
+        'XCM': XCMPlus,
+        'ResCNN': ResCNN,
+        'ResNet': ResNetPlus,
+        'InceptionTime': InceptionTimePlus,
+        'MLSTMFCN': MLSTM_FCNPlus,
+    }
+    return architectures[model_name]
+
 def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join([filepath,"Simulations/model_results/outputCVL_", savename, ".csv"])
+    savename = f"{name}_{model_name}_rand{randnum_split}_epochs{epochs}_trials{num_optuna_trials}_hype{hype}"
+    filepathout = f"{filepath}/Simulations/model_results/outputCVL_{savename}.csv"
+
+    # savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
+    # filepathout="".join([filepath,"Simulations/model_results/outputCVL_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)
@@ -28,10 +45,15 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     if model_name=="LR":
         # fit the logistic regression model
         for randnum in range(1,3):
-            runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
+            runtime, acc, auc, precision, recall, f1, cm = LM_cv.LRmodel_fit(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,randnum=randnum)
             
+            LR11_TP = cm[1, 1]
+            LR01_FP = cm[0, 1]
+            LR10_FN = cm[1, 0]
+            LR00_TN = cm[0, 0]
+
             # Formatting and saving the output
-            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00_TN, LR01_FP, LR10_FN, LR11_TP, runtime]
             output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
             output.to_csv(filepathout, index=False)
         print(output)
@@ -39,26 +61,28 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     else:
         # FIXME: These lines basically give the architecture name for each model, I am sure there is a better way to load the models for each architecture
         # Give the architecture for each model
-        if model_name=="LSTMFCN":
-            arch=LSTM_FCNPlus
+        arch = get_architecture(model_name)
+
+        # if model_name=="LSTMFCN":
+        #     arch=LSTM_FCNPlus
     
-        if model_name=="TCN":
-            arch=TCN
+        # if model_name=="TCN":
+        #     arch=TCN
 
-        if model_name=="XCM":
-            arch=XCMPlus
+        # if model_name=="XCM":
+        #     arch=XCMPlus
 
-        if model_name=="ResCNN":
-            arch=ResCNN
+        # if model_name=="ResCNN":
+        #     arch=ResCNN
 
-        if model_name=="ResNet":
-            arch=ResNetPlus
+        # if model_name=="ResNet":
+        #     arch=ResNetPlus
 
-        if model_name=="InceptionTime":
-            arch=InceptionTimePlus
+        # if model_name=="InceptionTime":
+        #     arch=InceptionTimePlus
 
-        if model_name=="MLSTMFCN":
-            arch=MLSTM_FCNPlus
+        # if model_name=="MLSTMFCN":
+        #     arch=MLSTM_FCNPlus
         
 
         ## Set seed
