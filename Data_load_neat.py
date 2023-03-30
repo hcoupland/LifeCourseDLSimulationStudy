@@ -138,7 +138,7 @@ def Standard_func(X,splits):
     #Xstnd = np.concatenate([Xtrain,Xvalid])
     return Xstnd
 
-def load_data(name,filepath):
+def load_data(name,filepath,subset=-1):
     ## function to load all the data from the filepath
 
     X_raw = np.load("".join([filepath,"input_data/",name, "_X.npy"])).astype(np.float32)
@@ -154,6 +154,13 @@ def load_data(name,filepath):
     Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",name, "_YH.npy"])))
     Y = Y_raw[:, np.shape(Y_raw)[1] - 1]
     print(Y.shape)
+
+
+    ### Helen messing around
+    if subset>0:
+        X_raw=X_raw[:subset,:,:]
+        Y=Y[:subset]
+    ## Helen stop messing around
 
     return X_raw, Y
 

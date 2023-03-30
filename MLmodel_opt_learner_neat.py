@@ -8,6 +8,7 @@ from tsai.all import *
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 import optuna
 from optuna.samplers import TPESampler
@@ -29,7 +30,9 @@ import Data_load_neat as Data_load
 warnings.filterwarnings('ignore')
 
 
-def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device):
+def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds=5):
+    if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
+        print("Input data contains NaN values.")
     # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
 
     # the metrics outputted when fitting the model
@@ -38,16 +41,19 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     # for LSTM-FCN or MLSTM-FCN or TCN
     # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
     iterable = [32,64,96,128,256,32,64,96,128,256,32,64,96,128,256]
-    combinations = []
-    combinations.extend([list(x) for x in itertools.combinations(iterable=iterable, r=3)])
+    combinations = [list(x) for x in itertools.combinations(iterable=iterable, r=3)]
+    # combinations = []
+    # combinations.extend([list(x) for x in itertools.combinations(iterable=iterable, r=3)])
 
     ksiterable = [1,1,1,3,3,3,5,5,5,7,7,7,9,9,9]
-    kscombinations = []
-    kscombinations.extend([list(x) for x in itertools.combinations(iterable=ksiterable, r=3)])
+    # kscombinations = []
+    # kscombinations.extend([list(x) for x in itertools.combinations(iterable=ksiterable, r=3)])
+    kscombinations = [list(x) for x in itertools.combinations(iterable=ksiterable, r=3)]
 
     kstiterable = [6,6,8,8,10,10,32,32,64,64,96,96,128,128]
-    kstcombinations = []
-    kstcombinations.extend([list(x) for x in itertools.combinations(iterable=kstiterable, r=3)])
+    # kstcombinations = []
+    # kstcombinations.extend([list(x) for x in itertools.combinations(iterable=kstiterable, r=3)])
+    kstcombinations = [list(x) for x in itertools.combinations(iterable=kstiterable, r=3)]
 
     def objective_cv(trial):
         # objective function enveloping the model objective function with cross-validation
@@ -57,9 +63,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
             ESPatience=trial.suggest_categorical("ESPatience",[2,4,6])
             alpha=trial.suggest_float("alpha",0.0,1.0)
-            gamma=trial.suggest_float("gamma",0.0,5.0)
+            gamma=trial.suggest_float("gamma",1.01,5.0)
             # weights=torch.tensor([alpha,1-alpha].float().cuda())
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
+            
 
             # FIXME: There might be a better way to specify the different models
             if model_name=="MLSTMFCN":
@@ -126,10 +133,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
                     'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
-                    'ks': trial.suggest_categorical('ks', [20, 40, 60]),
-                    'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
+                    'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
+                    #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
-
+            
 
             #  TSClassifier (X, y=None, splits=None, tfms=None, inplace=True,
             #    sel_vars=None, sel_steps=None, weights=None,
@@ -145,14 +152,16 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #    path='.', model_dir='models', splitter=<function
             #    trainable_params>, verbose=False)
 
+
             #     # fit the model to the train/test data
-            Data_load.random_seed2(randnum_train,dls=dls)
+            Data_load.random_seed(randnum_train)
 
             # print(weights.get_device())
             #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
             #model = InceptionTimePlus(dls.vars, dls.c)
-            model = arch(dls.vars, dls.c,param_grid)
+            # FIXME: check activation
+            model = arch(dls.vars, dls.c,param_grid, act=nn.LeakyReLU)
             model.to(device)
             learner = Learner(
                 dls,
@@ -160,7 +169,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
                 #seed=randnum_train,
-                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
+                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]# ,ShowGraph()
                 )
 
             #clf.fit_one_cycle(epochs,lr_max)
@@ -183,14 +192,15 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # FIXME: Okay so here I think I save the learner at different stages but have no idea how to properly load it later so I could use it
             # FIXME: I also don't understand why I would need to save the learner?
             # FIXME: I also don't understand when I should be reloading the learner and at what stage?
-            print(learner.summary())
+            #print(learner.summary())
             learner.save('stage0')
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)
             learner.save('stage1')
             #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-            print(learner.recorder.values[-1])
+            # print(learner.recorder.values[-1])
             #return learn.recorder.values[-1][1] ## this returns the valid loss
             return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+
 
         scores = []
 
@@ -202,7 +212,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         # torch.set_num_threads(18)
         
         # divide train data into 5 fold
-        skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=randnum)
+        skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=randnum)
         skf.get_n_splits(Xtrainvalid,Ytrainvalid)
         scaler=StandardScaler()
 
@@ -226,6 +236,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 [Xtrain, Xvalid], 
                 [Ytrain, Yvalid]
             )
+
+            print(f'mlkmodel line 238; Xvalid; shape={Xvalid.shape}; min mean = {Xvalid.mean((1,2)).min()}; max mean = {Xvalid.mean((1,2)).max()}')
             
             # standardise and one-hot the data
             #X_scaled=Data_load.prep_data(X2,splits_kfold2)
@@ -236,29 +248,36 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
             # FIXME: i HAVE GIVEN UP ON WeightedRandomSampler but potentially it is still a good thing to do?
             # set up the weightedrandom sampler
-            class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=y_combined[stratified_splits[0]])
-            sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
-            print(class_weights)
+            # class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=y_combined[stratified_splits[0]])
+            # sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
+            # print(class_weights)
 
-            Data_load.random_seed(randnum)
+            # Data_load.random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
                     dsets.train,
                     dsets.valid,
                     #sampler=sampler,
-                    bs=batch_size,
+                    bs=[batch_size,batch_size],#batch_size,
                     num_workers=0,
-                    device=device
+                    device=device,
                     #shuffle=False,
-                    #batch_tfms=(TSStandardize(by_var=True),),
+                    # batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
                     )
 
+            print(type(dls))
+            print(type(dls.valid))
+            # for x, y in dls.valid:
+            #     print(f'mlkmodel line 252; X; shape={x.shape}; min mean = {x.mean((1,2)).min()}; max mean = {x.mean((1,2)).max()}')
+            #     print(f'mlkmodel line 252; y; shape={y.shape}; first 10={y[:10]}; mean = {y.cpu().detach().numpy().mean()}')
+            #     break
+            # assert False
 
             # for i in range(10):
             #     x,y = dls.one_batch()
             #     print(sum(y)/len(y))
-            # ## this shows not 50% classes
+            ## this shows not 50% classes
 
             # print(dls.c)
             # print(dls.len)
@@ -271,6 +290,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 trial_score_instance= objective(trial)
                 instance_scores.append(trial_score_instance)
             trial_score=np.mean(instance_scores)
+            # randnum_train=1
+            # trial_score=objective(trial)
             scores.append(trial_score)
 
         return np.mean(scores)
@@ -291,10 +312,15 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     study.optimize(
         objective_cv,
         n_trials=num_optuna_trials,
-        show_progress_bar=True
+        show_progress_bar=True#,
+        #n_jobs=4
         )
-    print(study.Summary)
-    print(study.get_all_study_summaries)
+    
+    print(study.trials_dataframe())
+    print(study.best_params)
+    print(study.best_value)
+    # print(study.trial_summary())
+    # print(study.get_all_study_summaries)
     
     pruned_trials= [t for t in study.trials if t.state ==optuna.trial.TrialState.PRUNED]
     complete_trials=[t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
@@ -346,12 +372,13 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         dsets.train,
         dsets.valid,
         #sampler=sampler,
-        bs=batch_size, ## [batch_size]?
+        bs=[batch_size,batch_size],#batch_size, ## [batch_size]?
         num_workers=0,
-        device=device
+        device=device,
         #shuffle=False,
-        #batch_tfms=(TSStandardize(by_var=True),),
+        batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
         )
+
 
     for i in range(10):
         x,y = dls.one_batch()
@@ -455,12 +482,12 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         dsets.train,
         dsets.valid,
         #sampler=sampler,
-        bs=[batch_size],  ##bs=[batch_size,batch_size*2],?
+        bs=[batch_size,batch_size],  ##bs=[batch_size,batch_size*2],?
         num_workers=0,
-        device=device
+        device=device,
         #device=torch.device('cpu'), that works on the cpu!!
         #shuffle=False,
-        #batch_tfms=(TSStandardize(by_var=True),),
+        batch_tfms=[TSStandardize(by_var=True)]#[[TSStandardize(by_var=True)],None]
         )
 
     # print(f'The type of dsets.train is {type(dsets.train)}')

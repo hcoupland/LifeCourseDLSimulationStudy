@@ -40,6 +40,7 @@ def Sig_func(Xtrainvalid, Xtest, sig_depth, K):
         x9T = torch.tensor(x9.reshape(Nt, 1), dtype=torch.float)
         path = torch.cat((xtT, x1T, x2T, x3T, x4T, x5T, x6T, x7T, x8T, x9T), 1)
         path2 = path.unsqueeze(0)
+        test=torch.from_numpy(X_copy[i,:,:])
         X_sig[i, 0, :] = signatory.signature(path2, sig_depth).numpy()
 
     # function to reshape the data to flatten the time/feature dimensions into one

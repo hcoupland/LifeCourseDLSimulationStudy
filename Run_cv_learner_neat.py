@@ -12,7 +12,7 @@ import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
 #import rpy2.rinterface
 
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False):
+def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
@@ -97,6 +97,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 num_optuna_trials=num_optuna_trials,
                  model_name=model_name,
                  randnum=randnum_split,
+                 folds=folds,
                  device=device
                  )
             lr_max=1e-3
