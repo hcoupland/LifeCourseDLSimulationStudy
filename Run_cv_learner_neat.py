@@ -9,7 +9,7 @@ import copy
 
 import data_loading as Data_load
 import logistic_regression as LM_cv
-import MLmodel_opt_learner_neat as MLmodel_opt_learner
+import ML_models as MLmodel_opt_learner
 #import rpy2.rinterface
 
 def get_architecture(model_name):
@@ -169,7 +169,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 print(np.mean(Y_test))
                 print(np.std(Y_trainvalid))
                 print(np.std(Y_test))
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test)
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,y_test=Y_test)
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,batch_size,alpha,gamma]
@@ -218,7 +218,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 print(np.mean(Y_test))
                 print(np.std(Y_trainvalid))
                 print(np.std(Y_test))
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test)
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,y_test=Y_test)
 
                 # Formatting and saving the output
                 outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime,lr_max,batch_size,alpha,gamma]

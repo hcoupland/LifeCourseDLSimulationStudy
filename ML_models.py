@@ -548,26 +548,106 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
 # )
 
 
+# from collections import Counter
+# import timeit
+# import numpy as np
+# import torch
+# from sklearn.utils.class_weight import compute_class_weight
+# from fastai.metrics import accuracy, F1Score, RocAucBinary, BrierScore
+# from fastai.callback.all import EarlyStoppingCallback, ReduceLROnPlateau
+# from fastai.data.core import DataLoaders
+# from fastai.learner import Learner
+# from fastai.losses import FocalLossFlat
+# from tsai.data.all import TSDatasets, TSDataLoaders, TSStandardize, Categorize
+# from tsai.models.all import InceptionTimePlus
+
+# def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma, batch_size, device):
+#     # Define the metrics for model fitting output
+#     FLweights = [alpha, 1-alpha]
+#     metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
+#     weights = torch.tensor(FLweights, dtype=torch.float).to(device)
+#     ESPatience = 2
+
+#     # Prepare the data for the model
+#     tfms = [None, [Categorize()]]
+#     dsets = TSDatasets(X, Y, tfms=tfms, splits=splits, inplace=True)
+#     class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
+#     wgts = [1/count[0], 1/count[1]]
+#     sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dsets), replacement=True)
+#     dls = TSDataLoaders.from_dsets(
+#         dsets.train,
+#         dsets.valid,
+#         sampler=sampler,
+#         bs=[batch_size, batch_size], 
+#         num_workers=0,
+#         device=device,
+#         batch_tfms=[TSStandardize(by_var=True)]
+#     )
+
+#     # Set random seed and create the model
+#     DataLoaders.set_random_seed(randnum, True)
+#     model = arch(dls.vars, dls.c)
+#     model.to(device)
+
+#     # Create the learner and fit the model
+#     learn = Learner(
+#         dls, 
+#         model, 
+#         metrics=metrics,
+#         loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),
+#         cbs=[EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
+#     )
+#     learn.save('stage0')
+#     learn.fit_one_cycle(epochs, lr_max)
+#     learn.save('stage1')
+#     stop = timeit.default_timer()
+#     runtime = stop - start
+
+#     return runtime, learn
+
+
 def test_results(f_model,X_test,y_test):
+    """
+    Compute various evaluation metrics for a machine learning model on a test dataset.
+
+    Parameters:
+    -----------
+    - f_model (fastai.learner.Learner): A trained fastai Learner object.
+    - X_test (numpy.ndarray): The input features of the test dataset.
+    - Y_test (numpy.ndarray): The ground truth labels of the test dataset.
+
+    Returns:
+    --------
+    - results (dict): A dictionary containing the computed evaluation metrics.
+
+    Notes:
+    ------
+    This function computes the following evaluation metrics:
+    - accuracy
+    - precision
+    - recall
+    - F1-score
+    - ROC-AUC score
+    - average precision score
+    - true positives, true negatives, false positives, false negatives
+    It also prints the minimum, maximum, and median predicted probabilities for each class.
+    """
 
     valid_dl=f_model.dls.valid
 
-    # obtain probability scores, predicted values and targets
+    # Obtain probability scores, predicted values and targets
     test_ds=valid_dl.dataset.add_test(X_test,y_test)
     test_dl=valid_dl.new(test_ds)
     test_probas, test_targets,test_preds=f_model.get_preds(dl=test_dl,with_decoded=True,save_preds=None,save_targs=None)
 
-    # get the min, max and median of probability scores for each class
+    # Get the min, max and median of probability scores for each class
     where1s=np.where(y_test==1)
     where0s=np.where(y_test==0)
-    test_probasout=test_probas.numpy()
-    test_probasout=test_probasout[:,1]
-    print(f'Y equal 0: {[min(test_probasout[where0s]),statistics.mean(test_probasout[where0s]),max(test_probasout[where0s])]}')
-    print(f'Y equal 1: {[min(test_probasout[where1s]),statistics.mean(test_probasout[where1s]),max(test_probasout[where1s])]}')
-    #interp=ClassificationInterpretation.from_learner(f_model,dl=test_dl)
-    #print(interp.most_confused(min_val=3))
+    test_probasout = test_probas[:, 1].numpy()
+    print(f"Y equal 0: {[min(test_probasout[where0s]), test_probasout[where0s].mean(), max(test_probasout[where0s])]}")
+    print(f"Y equal 1: {[min(test_probasout[where1s]), test_probasout[where1s].mean(), max(test_probasout[where1s])]}\n")
 
-    ## get the various metrics for model fit
+    # Get the metrics for correctness of predicitions for test data
     acc=skm.accuracy_score(test_targets,test_preds)
     prec=skm.precision_score(test_targets,test_preds)
     rec=skm.recall_score(test_targets,test_preds)
@@ -581,43 +661,11 @@ def test_results(f_model,X_test,y_test):
     print(f"auc: {auc:.4f}")
     print(f"prc: {prc:.4f}")
 
-    # get the confusion matrix values
-    LR00=np.count_nonzero(np.bitwise_and(y_test==0,test_preds.numpy()==0))
-    LR01=np.count_nonzero(np.bitwise_and(y_test==0,test_preds.numpy()==1))
-    LR10=np.count_nonzero(np.bitwise_and(y_test==1,test_preds.numpy()==0))
-    LR11=np.count_nonzero(np.bitwise_and(y_test==1,test_preds.numpy()==1))
+    # Get the confusion matrix values
+    LR00, LR01, LR10, LR11 = skm.confusion_matrix(test_targets, test_preds).ravel()
     print("{:<40} {:.6f}".format("Y 0, predicted 0 (true negatives)",LR00))
     print("{:<40} {:.6f}".format("Y 0, predicted 1 (false positives)",LR01))
     print("{:<40} {:.6f}".format("Y 1, predicted 0 (false negatives)",LR10))
     print("{:<40} {:.6f}".format("Y 1, predicted 1 (true positives)",LR11))
 
     return acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
-
-
-    # get the min, max and median of probability scores for each class
-    test_probasout = test_probas[:, 1].numpy()
-    where1s = y_test == 1
-    where0s = y_test == 0
-    print(f"Y equal 0: {[min(test_probasout[where0s]), test_probasout[where0s].mean(), max(test_probasout[where0s])]}")
-    print(f"Y equal 1: {[min(test_probasout[where1s]), test_probasout[where1s].mean(), max(test_probasout[where1s])]}\n")
-
-    # get various metrics for model fit
-    metrics = skm.precision_recall_fscore_support(test_targets, test_preds, average='binary')
-    acc = skm.accuracy_score(test_targets, test_preds)
-    auc = skm.roc_auc_score(test_targets, test_probasout)
-    prc = skm.average_precision_score(test_targets, test_probasout)
-    print(f"accuracy: {acc:.4f}")
-    print(f"precision: {metrics[0]:.4f}")
-    print(f"recall: {metrics[1]:.4f}")
-    print(f"f1: {metrics[2]:.4f}")
-    print(f"auc: {auc:.4f}")
-    print(f"prc: {prc:.4f}\n")
-
-    # get confusion matrix values
-    LR00, LR01, LR10, LR11 = skm.confusion_matrix(test_targets, test_preds).ravel()
-    print(f"{'Y 0, predicted 0 (true negatives)':<40} {LR00:.6f}")
-    print(f"{'Y 0, predicted 1 (false positives)':<40} {LR01:.6f}")
-    print(f"{'Y 1, predicted 0 (false negatives)':<40} {LR10:.6f}")
-    print(f"{'Y 1, predicted 1 (true positives)':<40} {LR11:.6f}")
-
-    return acc, metrics[0], metrics[1], metrics[2], auc, prc, LR00, LR01, LR10, LR11

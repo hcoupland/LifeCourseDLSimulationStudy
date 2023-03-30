@@ -7,10 +7,6 @@ from tsai.all import *
 import numpy as np
 import torch
 
-# import imblearn
-# from torchsampler import ImbalancedDatasetSampler
-# from torch.utils.data import WeightedRandomSampler
-# from sklearn.utils.class_weight import compute_class_weight
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from fastai.vision.all import *
 from tsai.imports import *
@@ -134,37 +130,6 @@ def onehot_encode(X):
 
     return X_reshaped_encoded
 
-    # ## Fit the encoder to the train data
-    # encoder = OneHotEncoder()
-    # Xcopy = torch.from_numpy(X).to(torch.int64)
-    # Xcopy = np.transpose(Xcopy, (0, 2, 1))
-    # Xcopy = np.reshape(Xcopy, (-1, num_features), order='A')
-    # encoder.fit(Xcopy)
-    # cats = encoder.categories_
-    # num_cat = [len(x) for x in cats]
-    # num_oh_features = sum(num_cat)
-
-    # ## one hot the data
-    # X_onehot = torch.from_numpy(X).to(torch.int64)
-    # X_onehot = np.transpose(X_onehot, (0, 2, 1))
-    # X_onehot = np.reshape(X_onehot, (-1, num_features), order='A')
-    # X_onehot = encoder.transform(X_onehot).toarray()
-    # X_onehot = np.reshape(X_onehot, (num_samples, num_timepoints, num_oh_features))
-    # X_onehot = np.transpose(X_onehot, (0, 2, 1))
-    # return X_onehot
-
-
-
-    # # One-hot encode the data
-    # encoder = OneHotEncoder()
-    # X_encoded = encoder.fit_transform(X_reshaped).toarray()
-
-    # # Reshape the encoded array
-    # num_oh_features = X_encoded.shape[1]
-    # X_reshaped_encoded = X_encoded.reshape(num_samples, num_timepoints, num_oh_features).transpose(0, 2, 1)
-
-
-
 def standardize_data(X, splits):
     """
     Function to standardize the data using StandardScaler from scikit-learn. 
@@ -177,7 +142,7 @@ def standardize_data(X, splits):
     Returns:
     - X_stnd: numpy array of shape (num_samples, num_features, num_timepoints) containing the standardized input features
     """
-    scaler = StandardScaler()#MinMaxScaler()
+    scaler = StandardScaler()
 
     # Defining the dimensions
     num_samples, num_features, num_timepoints = X.shape
@@ -208,32 +173,8 @@ def standardize_data(X, splits):
     X_stnd = np.zeros((num_samples, num_features, num_timepoints))
     X_stnd[splits[0]] = X_train
     X_stnd[splits[1]] = X_valid
-
-    # # Combine the train and valid data
-    # X_stnd = np.concatenate([X_train, X_valid], axis=0)
     return X_stnd
 
-
-# def feature_encoding(X):
-#     """
-#     Determines which features to standardize and which to one-hot encode based on the number of unique values in each feature.
-
-#     Args:
-#         X (numpy array): Input data of shape (num_samples, num_features, num_timepoints), where num_samples is the number of samples, num_features is the number of features,
-#                          and num_timepoints is the number of timesteps.
-
-#     Returns:
-#         oh_vars (list): List of indices of features to one-hot encode.
-#         stnd_vars (list): List of indices of features to standardize.
-#     """
-#     oh_vars = []
-#     stnd_vars = []
-#     for i in range(X.shape[1]):
-#         if len(np.unique(X[:, i, :])) > 10:  # threshold for one-hot encoding
-#             stnd_vars.append(i)
-#         else:
-#             oh_vars.append(i)
-#     return oh_vars, stnd_vars
 
 
 def preprocess_data(X, splits):
@@ -252,9 +193,6 @@ def preprocess_data(X, splits):
     oh_vars = [1, 2, 3, 4, 5, 6, 7, 8]
     num_samples, num_features, num_timepoints = X.shape
     stnd_vars = list(set(range(num_features)) - set(oh_vars))
-    # stnd_vars=[0]
-
-    # oh_vars, stnd_vars = feature_encoding(X)
 
     # One-hot encoding
     X_onehot = X[:, oh_vars, :]
@@ -266,40 +204,6 @@ def preprocess_data(X, splits):
 
     # Concatenate the one-hot encoded and standardized data
     X_scaled = np.concatenate([X_onehot_out, X_stnd_out], axis=1)
-    return X_scaled
-
-
-    # # One-hot encoding
-    # enc = OneHotEncoder(handle_unknown='ignore', sparse=False)
-    # X_oh = enc.fit_transform(X[:, oh_vars, :].reshape(-1, X.shape[2]))
-
-    # # Standard scaling
-    # scaler = StandardScaler()
-    # X_stnd = scaler.fit_transform(X[:, stnd_vars, :].reshape(-1, X.shape[2]))
-
-
-    # Standardize specified columns
-    scaler = StandardScaler()
-    X_stnd = X[:, stnd_vars, :]
-    X_train = X[splits[0]]
-    X_train = np.transpose(X_train, (0, 2, 1))
-    X_train = np.reshape(X_train, (-1, len(stnd_vars)), order='A')
-    X_train = scaler.fit_transform(X_train)
-    X_train = np.reshape(X_train, (len(splits[0]), -1, len(stnd_vars)))
-    X_train = np.transpose(X_train, (0, 2, 1))
-    X_valid = X[splits[1]]
-    X_valid = np.transpose(X_valid, (0, 2, 1))
-    X_valid = np.reshape(X_valid, (-1, len(stnd_vars)), order='A')
-    X_valid = scaler.transform(X_valid)
-    X_valid = np.reshape(X_valid, (len(splits[1]), -1, len(stnd_vars)))
-    X_valid = np.transpose(X_valid, (0, 2, 1))
-    X_stnd = np.zeros(X.shape)
-    X_stnd[:, oh_vars, :] = X_oh_out
-    X_stnd[:, stnd_vars, :][splits[0]] = X_train
-    X_stnd[:, stnd_vars, :][splits[1]] = X_valid
-
-    X_scaled = X_stnd
-
     return X_scaled
 
 
@@ -364,18 +268,7 @@ def add_stochasticity(y, stoc_percent, randnum):
     num_ones = idx_ones.shape[0]
     num_switch10 = int(np.ceil(stoc_percent*num_ones))
 
-    # # Copy y
-    # y_outcheck = copy.copy(y)
-
-    # # Count number of positive values
-    # num_ones = np.sum(y_outcheck)
-
-    # # Calculate number of 1s to switch
-    # num10 = math.ceil(stoc * num_ones)
-
     # Randomly selects the correct number of 1s/0s that will be switched to 0s/1s
-    # which10 = random.sample(list(which1), num10)
-    # which01 = random.sample(list(which0), num10)
     idx_switch10 = np.random.choice(idx_ones, size=num_switch10, replace=False)
     idx_switch01 = np.random.choice(idx_zeros, size=num_switch10, replace=False)
 
