@@ -13,7 +13,7 @@ from sklearn.metrics import (
     average_precision_score,
     confusion_matrix
 )
-import data_loading as Data_load
+import data_loading
 
 
 
@@ -67,7 +67,7 @@ def fit_logistic_regression_model(
     X_LRtest = reshape_data(X_test)
 
     # Fit the logistic regression model to the train data
-    Data_load.random_seed(randnum, True)
+    data_loading.set_random_seed(randnum, True)
     logistic_regression_model = LogisticRegression(penalty="l1", tol=0.01, solver="saga")
     start = timeit.default_timer()
     logistic_regression_model.fit(X_LRtrainvalid, y_trainvalid)

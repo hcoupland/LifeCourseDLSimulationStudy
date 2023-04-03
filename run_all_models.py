@@ -6,9 +6,9 @@ import numpy as np
 import torch
 import copy
 
-import data_loading as Data_load
-import logistic_regression as LM_cv
-import ML_models as MLmodel_opt_learner
+import data_loading
+import logistic_regression
+import ML_models
 
 def get_architecture(model_name):
     """Define a dictionary that maps model name to architecture class"""
@@ -61,7 +61,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
     if model_name =="LR":
         # fit the logistic regression model
         for randnum in range(1, 3):
-            runtime, acc, auc, precision, recall, f1_value, aps, confusion_mat = LM_cv.fit_logistic_regression_model(
+            runtime, acc, auc, precision, recall, f1_value, aps, confusion_mat = logistic_regression.fit_logistic_regression_model(
                 X_trainvalid=X_trainvalid,
                 y_trainvalid=y_trainvalid,
                 X_test=X_test,
@@ -85,7 +85,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
         arch = get_architecture(model_name)
 
         ## Set seed
-        Data_load.set_random_seed(randnum_split)
+        data_loading.set_random_seed(randnum_split)
         torch.set_num_threads(18)
 
         # Split out the trainvalid set to get a 10 percent additional validation set
@@ -107,7 +107,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
             # Loop for hyperparameter search
 
             # Find the hyperparameters using optuna and cross-validation on train/valid
-            trial = MLmodel_opt_learner.hyperopt(
+            trial = ML_models.hyperopt(
                 X_trainvalid,
                 y_trainvalid,
                 epochs = epochs,
@@ -137,7 +137,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
             for randnum in range(0, 3):
                 print("  Random seed: ", randnum)
                 # Rerun the model on train/test with the selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block(
+                learner = ML_models.run_final_train(
                     arch = arch,
                     X = X_trainvalid,
                     y = y_trainvalid,
@@ -152,8 +152,8 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
                     ESPatience = ESPatience,
                     device = device
                     )
-
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = MLmodel_opt_learner.test_results(learner, X_test, y_test=y_test)
+                runtime = learner.recorder.values[-1][0]
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = ML_models.test_results(learner, X_test, y_test=y_test)
 
                 # Formatting and saving the output
                 outputs = [name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime, batch_size, alpha, gamma]
@@ -185,7 +185,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
                 print("  Random seed: ", randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block(
+                learner = ML_models.run_final_train(
                     arch=arch,
                     X=X_trainvalid,
                     y=y_trainvalid,
@@ -200,8 +200,8 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
                     ESPatience=ESPatience,
                     device=device
                     )
-
-                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = MLmodel_opt_learner.test_results(learner, X_test, y_test=y_test)
+                runtime = learner.recorder.values[-1][0]
+                acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = ML_models.test_results(learner, X_test, y_test=y_test)
 
                 # Formatting and saving the output
                 outputs = [name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime, lr_max, batch_size, alpha, gamma]

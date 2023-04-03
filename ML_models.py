@@ -17,7 +17,8 @@ from sklearn.utils.class_weight import compute_class_weight
 from torch.utils.data import WeightedRandomSampler
 
 from fastai.vision.all import *
-import data_loading as Data_load
+import data_loading
+from metrics import load_metrics
 
 
 def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, model_name, device, folds=5):
@@ -50,9 +51,6 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
     """
     if np.isnan(X_trainvalid).any() or np.isnan(y_trainvalid).any():
         print("Input data contains NaN values.")
-
-    # Define the metrics outputted when fitting the model
-    metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
 
     # Define iterables for LSTM-FCN or MLSTM-FCN or TCN
     if model_name == "MLSTMFCN" or  model_name == "TCN" or model_name == "LSTMFCN":
@@ -196,14 +194,14 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
                 }
 
             # Fit the model to the train/test data
-            Data_load.set_random_seed(randnum_train)
+            data_loading.set_random_seed(randnum_train)
 
             model = arch(dls.vars, dls.c,param_grid, act=nn.LeakyReLU)
             model.to(device)
             learner = Learner(
                 dls,
                 model,
-                metrics = metrics,
+                metrics = load_metrics,
                 loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),
                 #seed = randnum_train,
                 cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
@@ -240,13 +238,13 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
             print(f'X_valid; shape = {X_valid.shape}; min mean = {X_valid.mean((1, 2)).min()}; max mean = {X_valid.mean((1, 2)).max()}')
 
             # standardise and one-hot the data
-            # X_scaled = Data_load.prep_data(X2, splits_kfold2)
+            # X_scaled = data_loading.prep_data(X2, splits_kfold2)
 
             # Prepare the data for the model
             tfms = [None, Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits, inplace=True)
 
-            Data_load.set_random_seed(randnum)
+            data_loading.set_random_seed(randnum)
 
             dls = TSDataLoaders.from_dsets(
                     dsets.train,
@@ -279,7 +277,7 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
 
 
     # set random seed
-    Data_load.set_random_seed(randnum)
+    data_loading.set_random_seed(randnum)
 
     # Create optuna study
     study = optuna.create_study(
@@ -318,7 +316,7 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
 #     arch_config = {k: v for (k, v) in study.best_params.items() if k in param_list},
 
 
-def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamma, batch_size, ESPatience, device):
+def run_final_train(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamma, batch_size, ESPatience, device):
     """
     Train a model using the provided architecture and pre-defined hyperparameters from hyperopt or otherwise.
 
@@ -339,8 +337,6 @@ def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamm
     tuple: a tuple containing the total runtime and the trained learner object
     """
 
-    # Define the metrics for model fitting output
-    metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
     weights = torch.tensor([alpha, 1-alpha], dtype=torch.float).to(device)
 
     # Prepare the data for the model
@@ -357,7 +353,7 @@ def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamm
     # dls.train.shuffle = False
     # dls.train.sampler = sampler
 
-    Data_load.set_random_seed(randnum, True)
+    data_loading.set_random_seed(randnum, True)
 
     dls = TSDataLoaders.from_dsets(
         dsets.train,
@@ -375,7 +371,7 @@ def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamm
         print(sum(y)/len(y))
 
     # Set random seed and create the model
-    Data_load.set_random_seed(randnum, dls=dls)
+    data_loading.set_random_seed(randnum, dls=dls)
     model = arch(dls.vars, dls.c, params)
     model.to(device)
 
@@ -383,7 +379,7 @@ def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamm
     learn = Learner(
         dls,
         model,
-        metrics = metrics,
+        metrics = load_metrics,
         loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),
         #seed = randnum,
         cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
@@ -393,9 +389,7 @@ def model_block(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, gamm
     learn.fit_one_cycle(epochs, lr_max)
     learn.save('stage1')
 
-    runtime = learn.recorder.values[-1][0]
-
-    return runtime, learn
+    return learn
 
 
 def test_results(f_model, X_test, y_test):
