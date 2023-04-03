@@ -1,9 +1,7 @@
 ## script containing hyperparameter optimisation functions, model fitting functions and output analysis functions
 from collections import Counter
-import statistics
 import timeit
 import itertools
-import warnings
 from tsai.all import *
 
 import numpy as np
@@ -14,7 +12,6 @@ import optuna
 from optuna.samplers import TPESampler
 import sklearn.metrics as skm
 
-
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import WeightedRandomSampler
 
@@ -23,36 +20,22 @@ from optuna.integration import FastAIPruningCallback
 from fastai.vision.all import *
 import data_loading as Data_load
 
-
-#import rpy2.rinterface
-
-
-warnings.filterwarnings('ignore')
-
-
 def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model_name, device, folds=5):
     if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
         print("Input data contains NaN values.")
     # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
 
-    # the metrics outputted when fitting the model
+    # Define the metrics outputted when fitting the model
     metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
 
     # for LSTM-FCN or MLSTM-FCN or TCN
-    # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
     iterable = [32, 64, 96, 128, 256, 32, 64, 96, 128, 256, 32, 64, 96, 128, 256]
     combinations = [list(x) for x in itertools.combinations(iterable=iterable, r=3)]
-    # combinations = []
-    # combinations.extend([list(x) for x in itertools.combinations(iterable=iterable, r=3)])
 
     ksiterable = [1, 1, 1, 3, 3, 3, 5, 5, 5, 7, 7, 7, 9, 9, 9]
-    # kscombinations = []
-    # kscombinations.extend([list(x) for x in itertools.combinations(iterable=ksiterable, r=3)])
     kscombinations = [list(x) for x in itertools.combinations(iterable=ksiterable, r=3)]
 
     kstiterable = [6, 6, 8, 8, 10, 10, 32, 32, 64, 64, 96, 96, 128, 128]
-    # kstcombinations = []
-    # kstcombinations.extend([list(x) for x in itertools.combinations(iterable=kstiterable, r=3)])
     kstcombinations = [list(x) for x in itertools.combinations(iterable=kstiterable, r=3)]
 
     def objective_cv(trial):
@@ -140,10 +123,6 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
             # Fit the model to the train/test data
             Data_load.set_random_seed(randnum_train)
 
-            # print(weights.get_device())
-            #clf = TSClassifier(X3d, Y, splits=splits, arch=arch, arch_config=dict(params), metrics=metrics, loss_func=FocalLossFlat(gamma=gamma, weight=weights), verbose=True, cbs=[ReduceLROnPlateau()])
-
-            #model = InceptionTimePlus(dls.vars, dls.c)
             # FIXME: check activation
             model = arch(dls.vars, dls.c,param_grid, act=nn.LeakyReLU)
             model.to(device)
@@ -151,13 +130,10 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
                 dls,
                 model,
                 metrics = metrics,
-                loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),#loss_func=FocalLossFlat(gamma=gamma, weight=weights),
+                loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),
                 #seed = randnum_train,
-                cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]# ,ShowGraph()
+                cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
                 )
-
-            #clf.fit_one_cycle(epochs, lr_max)
-
 
             # learner = TSClassifier(
             #     X_combined,
@@ -167,50 +143,36 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
             #     arch = arch,#InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
             #     arch_config = param_grid,
             #     metrics = metrics,
-            #     loss_func = FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
+            #     loss_func = FocalLossFlat(gamma=gamma, weight=weights),
             #     verbose = True,
-            #     cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]#,
+            #     cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()],
             # )
 
-            #learn.fit_one_cycle(epochs, lr_max=learning_rate_init, callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
-            # FIXME: Okay so here I think I save the learner at different stages but have no idea how to properly load it later so I could use it
-            # FIXME: I also don't understand why I would need to save the learner?
-            # FIXME: I also don't understand when I should be reloading the learner and at what stage?
-            #print(learner.summary())
+
             learner.save('stage0')
             learner.fit_one_cycle(epochs, lr_max=learning_rate_init)
             learner.save('stage1')
             #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-            # print(learner.recorder.values[-1])
             #return learn.recorder.values[-1][1] ## this returns the valid loss
-            return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
-
+            return learner.recorder.values[-1][4] ## this returns the auc
 
         scores = []
 
-        # add batch_size as a hyperparameter
+        # Add batch_size as a hyperparameter
         batch_size = trial.suggest_categorical('batch_size', [32, 64, 128])
-
-        # # set random seed
-        # Data_load.set_random_seed(randnum, True)
-        # torch.set_num_threads(18)
         
-        # divide train data into 5 fold
+        # Divide train data into 5 fold
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=randnum)
         skf.get_n_splits(Xtrainvalid, Ytrainvalid)
         scaler = StandardScaler()
 
-        # loop through each fold and fit hyperparameters
+        # Loop through each fold and fit hyperparameters
         for train_idx, valid_idx in skf.split(Xtrainvalid, Ytrainvalid):
             print("TRAIN:", train_idx, "VALID:", valid_idx)
 
-            # select train and validation data
+            # Select train and validation data
             Xtrain, Xvalid = Xtrainvalid[train_idx], Xtrainvalid[valid_idx]
             Ytrain, Yvalid = Ytrainvalid[train_idx], Ytrainvalid[valid_idx]
-
-            #print(Counter(Ytrainvalid))
-            #print(Counter(Ytrain))
-            #print(Counter(Yvalid))
 
             # get new splits according to this data
             #splits_kfold = get_predefined_splits([Xtrain, Xvalid])
@@ -224,13 +186,12 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
             print(f'mlkmodel line 238; Xvalid; shape = {Xvalid.shape}; min mean = {Xvalid.mean((1, 2)).min()}; max mean = {Xvalid.mean((1, 2)).max()}')
             
             # standardise and one-hot the data
-            #X_scaled = Data_load.prep_data(X2, splits_kfold2)
+            # X_scaled = Data_load.prep_data(X2, splits_kfold2)
 
-            # prepare the data to go in the model
+            # Prepare the data to go in the model
             tfms = [None, Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits, inplace=True)
 
-            # FIXME: i HAVE GIVEN UP ON WeightedRandomSampler but potentially it is still a good thing to do?
             # set up the weightedrandom sampler
             # class_weights = compute_class_weight(class_weight='balanced', classes=np.array( [0, 1]), y=y_combined[stratified_splits[0]])
             # sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(class_weights), replacement=True)
@@ -238,7 +199,7 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
 
             # Data_load.set_random_seed(randnum)
 
-            # prepare this data for the model (define batches etc)
+            # Prepare this data for the model
             dls = TSDataLoaders.from_dsets(
                     dsets.train,
                     dsets.valid,
@@ -268,9 +229,8 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
                 print("  Random seed: ", randnum_train)
                 trial_score_instance = objective(trial)
                 instance_scores.append(trial_score_instance)
+            
             trial_score = np.mean(instance_scores)
-            # randnum_train = 1
-            # trial_score = objective(trial)
             scores.append(trial_score)
 
         return np.mean(scores)
@@ -278,15 +238,12 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
     
     # set random seed
     Data_load.set_random_seed(randnum)
-    torch.set_num_threads(18)
 
-    # create optuna study
-    #study = optuna.create_study(direction='minimize', pruner=optuna.pruners.HyperbandPruner())
-    optsampler = TPESampler(seed=randnum)  # Make the sampler behave in a deterministic way.
+    # Create optuna study
     study = optuna.create_study(
         direction = 'maximize',
         pruner = optuna.pruners.MedianPruner(),
-        sampler = optuna.samplers.TPESampler(seed=randnum)#optsampler
+        sampler = optuna.samplers.TPESampler(seed=randnum)
         )
     study.optimize(
         objective_cv,
@@ -298,8 +255,6 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
     print(study.trials_dataframe())
     print(study.best_params)
     print(study.best_value)
-    # print(study.trial_summary())
-    # print(study.get_all_study_summaries)
     
     pruned_trials = [t for t in study.trials if t.state==optuna.trial.TrialState.PRUNED]
     complete_trials = [t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
@@ -319,187 +274,149 @@ def hyperopt(Xtrainvalid, Ytrainvalid, epochs, randnum, num_optuna_trials, model
     return trial
 
 
+#     arch_config = {k: v for (k, v) in study.best_params.items() if k in param_list},
+
 
 def model_block(arch, X, Y, splits, params, epochs, randnum, lr_max, alpha, gamma, batch_size, ESPatience, device):
-    # function to fit the model on the train/test data with pre-trained hyperparameters
-    # metrics to output whilst fitting
+    """
+    Train a model using the provided architecture and pre-defined hyperparameters from hyperopt or otherwise.
+
+    Parameters:
+    arch (function): the named architecture to create the model
+    X (numpy.ndarray): the input features
+    Y (numpy.ndarray): the target variables
+    splits (tuple): the indices to split the data into training and validation sets
+    epochs (int): the number of epochs to train the model
+    randnum (int): the random seed to use for reproducibility
+    lr_max (float): the maximum learning rate to use during training
+    alpha (float): Weight parameter for the FocalLossFlat
+    gamma (float): Gamma parameter for the FocalLossFlat
+    batch_size (int): the number of samples to use in each batch during training
+    device (str or torch.device): Device to be used for the computation
+
+    Returns:
+    tuple: a tuple containing the total runtime and the trained learner object
+    """
+
+    # Define the metrics for model fitting output
     metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
-
-    # X2, Y2, splits_kfold2 = combine_split_data([Xtrain, Xvalid], [Ytrain, Yvalid])
-
     FLweights = [alpha, 1-alpha]
     weights = torch.tensor(FLweights, dtype=torch.float).to(device)
-    
-    # standardize and one-hot the data
-    #X_scaled = Data_load.prep_data(X, splits)
 
-    # prep the data for the model
-    #X3d = to3d(X)
-    tfms = [None, Categorize()]
-    dsets = TSDatasets(X, Y,tfms=tfms, splits=splits, inplace=True)
-    
-    # set up the weighted random sampler
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.array( [0, 1]), y=Y[splits[0]])
-    print(class_weights)
-    sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(class_weights), replacement=True)
-
-    # Data_load.set_random_seed(randnum, True)
-
-    # define batches
-    dls = TSDataLoaders.from_dsets(
-        dsets.train,
-        dsets.valid,
-        #sampler = sampler,
-        bs = [batch_size, batch_size],#batch_size, ## [batch_size]?
-        num_workers = 0,
-        device = device,
-        #shuffle = False,
-        batch_tfms = [TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
-        )
-
-
-    for i in range(10):
-        x, y = dls.one_batch()
-        print(sum(y)/len(y))
-    ## this shows not 50% classes
-    
-
-    # Fit the model to the train/test data
-    Data_load.set_random_seed(randnum, dls=dls)
-    start = timeit.default_timer()
-    #clf = TSClassifier(X3d, Y, splits=splits, arch=arch, arch_config=dict(params), metrics=metrics, loss_func=FocalLossFlat(gamma=gamma, weight=weights), verbose=True, cbs=[ReduceLROnPlateau()])
-
-    #model = InceptionTimePlus(dls.vars, dls.c)
-    model = arch(dls.vars, dls.c, params)
-    model.to(device)
-    learn = Learner(
-        dls, 
-        model, 
-        metrics = metrics,
-        loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),#loss_func=FocalLossFlat(gamma=gamma, weight=weights),
-        #seed = randnum,
-        cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
-        )
-    learn.save('stage0')
-
-    learn.fit_one_cycle(epochs, lr_max)
-    learn.save('stage1')
-    #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-
-    #clf.fit_one_cycle(epochs, lr_max)
-    stop = timeit.default_timer()
-    runtime = stop-start
-
-
-    # #weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
-    # #weights = torch.tensor(weights, dtype=torch.float)
-
-    # learner = TSClassifier(
-    #     X_combined,
-    #     y_combined,
-    #     bs = study.best_params['batch_size'],
-    #     splits = stratified_splits,
-    #     arch = InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
-    #     arch_config = {k: v for (k, v) in study.best_params.items() if k in param_list},
-    #     metrics = metrics,
-    #     loss_func = FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
-    #     verbose = True,
-    #     cbs = [EarlyStoppingCallback(patience=study.best_params['patience']), ReduceLROnPlateau()],
-    #     device = device
-    # )
-
-    # learner.fit_one_cycle(1, 1e-3)
-
-    return runtime, learn
-
-
-# def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma, batch_size, device):
-#     # Define the metrics for model fitting output
-#     FLweights = [alpha, 1-alpha]
-#     metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
-#     weights = torch.tensor(FLweights, dtype=torch.float).to(device)
-#     ESPatience = 2
-
-#     # Prepare the data for the model
-#     tfms = [None, [Categorize()]]
-#     dsets = TSDatasets(X, Y, tfms=tfms, splits=splits, inplace=True)
-#     class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
-#     wgts = [1/count[0], 1/count[1]]
-#     sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dsets), replacement=True)
-#     dls = TSDataLoaders.from_dsets(
-#         dsets.train,
-#         dsets.valid,
-#         sampler=sampler,
-#         bs=[batch_size, batch_size], 
-#         num_workers=0,
-#         device=device,
-#         batch_tfms=[TSStandardize(by_var=True)]
-#     )
-
-
-def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma, batch_size, device):
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
-    # define the metrics for model fitting output
-    FLweights = [alpha, 1-alpha]
-    metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
-    weights = torch.tensor(FLweights,  dtype=torch.float).to(device)
-
-    # print(weights.get_device())
-    ESPatience = 2
-
-    #print('line 426')
-
-    # prep the data for the model
+    # Prepare the data for the model
     tfms = [None, [Categorize()]]
+    # dls = get_ts_dls(X, Y, tfms=[None, [Categorize()]], splits=splits, bs=batch_size, shuffle_train=False, num_workers=0, device=device, batch_tfms = [TSStandardize(by_var=True)])
     dsets = TSDatasets(X, Y, tfms=tfms, splits=splits, inplace=True)
 
-    #print('line 430')
-
-    # set up the weighted random sampler
-    class_weights = compute_class_weight(class_weight='balanced', classes=np.array( [0, 1]), y=Y[splits[0]])
-    #print('line 432')
-    print(class_weights)
+    # Set up the weighted random sampler
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
     count = Counter(Y[splits[0]])
-    print(count)
     wgts = [1/count[0], 1/count[1]]
-    print(wgts)
-    print(len(wgts))
-    print(len(dsets))
-    sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dsets), replacement=True)
+    sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dls.train), replacement=True)
 
-    # print('dsklthsdiyuerop')
+    # dls.train.shuffle = False
+    # dls.train.sampler = sampler
 
-    # Data_load.set_random_seed(randnum, True)
+    Data_load.set_random_seed(randnum, True)
     
     dls = TSDataLoaders.from_dsets(
         dsets.train,
         dsets.valid,
         #sampler = sampler,
-        bs = [batch_size, batch_size],  ##bs = [batch_size, batch_size*2],?
+        bs = [batch_size, batch_size],
         num_workers = 0,
         device = device,
-        #device = torch.device('cpu'), that works on the cpu!!
         #shuffle = False,
         batch_tfms = [TSStandardize(by_var=True)]#[[TSStandardize(by_var=True)], None]
         )
 
-    # print(f'The type of dsets.train is {type(dsets.train)}')
+    for i in range(10):
+        x, y = dls.one_batch()
+        print(sum(y)/len(y))
+
+    # Set random seed and create the model
+    Data_load.set_random_seed(randnum, dls=dls)
+    model = arch(dls.vars, dls.c, params)
+    model.to(device)
+
+    # Create the learner and fit the model
+    learn = Learner(
+        dls, 
+        model, 
+        metrics = metrics,
+        loss_func = FocalLossFlat(gamma=torch.tensor(gamma).to(device), weight=weights),
+        #seed = randnum,
+        cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
+        )
+    
+    learn.save('stage0')
+    learn.fit_one_cycle(epochs, lr_max)
+    learn.save('stage1')
+
+    runtime = learn.recorder.values[-1][0]
+
+    return runtime, learn
+
+
+def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma, batch_size, ESPatience,device):
+    """
+    Train a model using the provided architecture and pre-defined hyperparameters.
+
+    Parameters:
+    arch (function): the named architecture to create the model
+    X (numpy.ndarray): the input features
+    Y (numpy.ndarray): the target variables
+    splits (tuple): the indices to split the data into training and validation sets
+    epochs (int): the number of epochs to train the model
+    randnum (int): the random seed to use for reproducibility
+    lr_max (float): the maximum learning rate to use during training
+    alpha (float): Weight parameter for the FocalLossFlat
+    gamma (float): Gamma parameter for the FocalLossFlat
+    batch_size (int): the number of samples to use in each batch during training
+    device (str or torch.device): Device to be used for the computation
+
+    Returns:
+    tuple: a tuple containing the total runtime and the trained learner object
+    """
+
+    # Define the metrics for model fitting output
+    metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
+    FLweights = [alpha, 1-alpha]
+    weights = torch.tensor(FLweights, dtype=torch.float).to(device)
+
+    # Prepare the data for the model
+    tfms = [None, [Categorize()]]
+    # dls = get_ts_dls(X, Y, tfms=[None, [Categorize()]], splits=splits, bs=batch_size, shuffle_train=False, num_workers=0, device=device, batch_tfms = [TSStandardize(by_var=True)])
+    dsets = TSDatasets(X, Y, tfms=tfms, splits=splits, inplace=True)
+
+    # Set up the weighted random sampler
+    class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
+    count = Counter(Y[splits[0]])
+    wgts = [1/count[0], 1/count[1]]
+    sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dls.train), replacement=True)
+
+    # dls.train.shuffle = False
+    # dls.train.sampler = sampler
+
+    Data_load.set_random_seed(randnum, True)
+    
+    dls = TSDataLoaders.from_dsets(
+        dsets.train,
+        dsets.valid,
+        #sampler = sampler,
+        bs = [batch_size, batch_size],
+        num_workers = 0,
+        device = device,
+        #shuffle = False,
+        batch_tfms = [TSStandardize(by_var=True)]#[[TSStandardize(by_var=True)], None]
+        )
 
     for i in range(10):
         x, y = dls.one_batch()
         print(sum(y)/len(y))
 
-    #dls = dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
-    
-    print(dls.c)
-    print(dls.len)
-    print(dls.vars)
-    #weights = torch.tensor(compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]]), dtype=torch.float)
-
     # Set random seed and create the model
     Data_load.set_random_seed(randnum, dls=dls)
-    start = timeit.default_timer()
     model = arch(dls.vars, dls.c)
     model.to(device)
 
@@ -512,57 +429,15 @@ def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma
         #seed = randnum,
         cbs = [EarlyStoppingCallback(patience=ESPatience), ReduceLROnPlateau()]
         )
+    
     learn.save('stage0')
-
-    #learn.load('stage0')
-    #learn.lr_find()
-
     learn.fit_one_cycle(epochs, lr_max)
     learn.save('stage1')
 
-    #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-    stop = timeit.default_timer()
-    runtime = stop-start
+    runtime = learn.recorder.values[-1][0]
 
     return runtime, learn
 
-
-
-# from collections import Counter
-# import timeit
-# import numpy as np
-# import torch
-# from sklearn.utils.class_weight import compute_class_weight
-# from fastai.metrics import accuracy, F1Score, RocAucBinary, BrierScore
-# from fastai.callback.all import EarlyStoppingCallback, ReduceLROnPlateau
-# from fastai.data.core import DataLoaders
-# from fastai.learner import Learner
-# from fastai.losses import FocalLossFlat
-# from tsai.data.all import TSDatasets, TSDataLoaders, TSStandardize, Categorize
-# from tsai.models.all import InceptionTimePlus
-
-# def model_block_nohype(arch, X, Y, splits, epochs, randnum, lr_max, alpha, gamma, batch_size, device):
-#     # Define the metrics for model fitting output
-#     FLweights = [alpha, 1-alpha]
-#     metrics = [accuracy, F1Score(), RocAucBinary(), BrierScore()]
-#     weights = torch.tensor(FLweights, dtype=torch.float).to(device)
-#     ESPatience = 2
-
-#     # Prepare the data for the model
-#     tfms = [None, [Categorize()]]
-#     dsets = TSDatasets(X, Y, tfms=tfms, splits=splits, inplace=True)
-#     class_weights = compute_class_weight(class_weight='balanced', classes=np.array([0, 1]), y=Y[splits[0]])
-#     wgts = [1/count[0], 1/count[1]]
-#     sampler = WeightedRandomSampler(weights=class_weights, num_samples=len(dsets), replacement=True)
-#     dls = TSDataLoaders.from_dsets(
-#         dsets.train,
-#         dsets.valid,
-#         sampler = sampler,
-#         bs = [batch_size, batch_size], 
-#         num_workers = 0,
-#         device = device,
-#         batch_tfms = [TSStandardize(by_var=True)]
-#     )
 
 def test_results(f_model, X_test, y_test):
     """

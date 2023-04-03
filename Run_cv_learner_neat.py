@@ -197,6 +197,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
             batch_size=64
             alpha=0.5
             gamma=3
+            ESPatience=2
+            params=dict()
             # output=[]
 
             colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"]
@@ -208,7 +210,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device)
+                runtime, learner = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,params=params,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience,device=device)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))
