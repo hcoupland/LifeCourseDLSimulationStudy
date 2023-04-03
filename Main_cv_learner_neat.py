@@ -88,7 +88,7 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
 
     ## Runs hyperparameter and fits those models required
     #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, y_trainvalid=y_trainvalid, X_test=X_test_s, y_test=y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
-    output=Run_cv_learner.All_run(
+    output=Run_cv_learner.run_opt_model(
         name=name,
         model_name=model_name,
         X_trainvalid=X_trainvalid, 
