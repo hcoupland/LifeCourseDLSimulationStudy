@@ -20,13 +20,13 @@ from tsai.data.validation import combine_split_data, get_splits
 from tsai.models.InceptionTimePlus import InceptionTimePlus
 from tsai.tslearner import TSClassifier
 
-# load in arguments from command line
-name = "data_2real1bigdet" #sys.argv[1]#
-model_name="InceptionTime"#sys.argv[2]#
-randnum_split=3#int(sys.argv[3])
-epochs=1#int(sys.argv[4])
-num_optuna_trials =10# int(sys.argv[5])
-hype= "False"# sys.argv[6]
+# Load in arguments from command line
+name = "data_2real1bigdet"
+model_name = "InceptionTime"
+randnum_split = 3
+epochs = 1
+num_optuna_trials = 10
+hype = "False"
 imp = "False"
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
@@ -45,13 +45,9 @@ def run(name, model_name, randnum_split, epochs, num_optuna_trials, hype, imp, f
     # Function to obtain the train/test split
     X_trainvalid, y_trainvalid, X_test, y_test, splits = data_loading.split_data(X=X_raw, y=y_raw, randnum=randnum_split)
 
-    # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
-    # y_train, y_test = y[splits[0]], y[splits[-1]]
-
     # Now scale all the data
     X_scaled = data_loading.preprocess_data(X_raw, splits)
 
-    # FIXME: Should this be X_scaled[splits[-1]] for the second? And if so, why?
     X_trainvalid_s, X_test_s = X_scaled[splits[0]], X_scaled[splits[1]]
 
     for (arr, arr_name) in zip(

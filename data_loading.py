@@ -1,21 +1,21 @@
 """This module contains functions to load, split, standardize and add stochasticity."""
-
+import logging
 import random
 from collections import Counter
-from tsai.all import *
+
 
 import numpy as np
 import torch
 
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from fastai.vision.all import *
+from tsai.all import *
 from tsai.imports import *
 from tsai.utils import *
 from tsai.data.core import TSDataLoaders, TSDatasets
 from tsai.data.preprocessing import TSStandardize
 from tsai.data.validation import get_splits
 
-import logging
 
 def set_random_seed(seed_value: int, dls=None, use_cuda: bool = True) -> None:
     """
@@ -273,7 +273,7 @@ def add_stochasticity(y, stoc_percent, randnum):
     idx_switch01 = np.random.choice(idx_zeros, size=num_switch10, replace=False)
 
     # Make a copy of the input array
-    y_stoc = np.copy(Y)
+    y_stoc = np.copy(y)
 
     # Add stochasticity
     y_stoc[idx_switch10] = 0
