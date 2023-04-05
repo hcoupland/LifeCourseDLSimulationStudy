@@ -258,7 +258,7 @@ def add_stochasticity(y, stoc_percent, randnum):
     """
 
     # Set random seed
-    set_random_seed(randnum)
+    set_random_seed(seed_value=randnum)
 
     # Get indices of 1s and 0s
     idx_ones = np.where(y == 1)[0]

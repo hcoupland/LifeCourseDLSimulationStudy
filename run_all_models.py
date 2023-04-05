@@ -85,7 +85,7 @@ def run_opt_model(name, model_name, X_trainvalid, y_trainvalid, X_test, y_test, 
         arch = get_architecture(model_name)
 
         ## Set seed
-        data_loading.set_random_seed(randnum_split)
+        data_loading.set_random_seed(seed_value=randnum_split)
         torch.set_num_threads(18)
 
         # Split out the trainvalid set to get a 10 percent additional validation set

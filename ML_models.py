@@ -194,7 +194,7 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
                 }
 
             # Fit the model to the train/test data
-            data_loading.set_random_seed(randnum_train)
+            data_loading.set_random_seed(seed_value=randnum_train)
 
             model = arch(dls.vars, dls.c,param_grid, act=nn.LeakyReLU)
             model.to(device)
@@ -244,7 +244,7 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
             tfms = [None, Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits, inplace=True)
 
-            data_loading.set_random_seed(randnum)
+            data_loading.set_random_seed(seed_value=randnum)
 
             dls = TSDataLoaders.from_dsets(
                     dsets.train,
@@ -277,7 +277,7 @@ def hyperopt(X_trainvalid, y_trainvalid, epochs, randnum, num_optuna_trials, mod
 
 
     # set random seed
-    data_loading.set_random_seed(randnum)
+    data_loading.set_random_seed(seed_value=randnum)
 
     # Create optuna study
     study = optuna.create_study(
@@ -353,7 +353,7 @@ def run_final_train(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, 
     # dls.train.shuffle = False
     # dls.train.sampler = sampler
 
-    data_loading.set_random_seed(randnum, True)
+    data_loading.set_random_seed(seed_value=randnum)
 
     dls = TSDataLoaders.from_dsets(
         dsets.train,
@@ -371,7 +371,7 @@ def run_final_train(arch, X, y, splits, params, epochs, randnum, lr_max, alpha, 
         print(sum(y)/len(y))
 
     # Set random seed and create the model
-    data_loading.set_random_seed(randnum, dls=dls)
+    data_loading.set_random_seed(seed_value=randnum, dls=dls)
     model = arch(dls.vars, dls.c, params)
     model.to(device)
 
