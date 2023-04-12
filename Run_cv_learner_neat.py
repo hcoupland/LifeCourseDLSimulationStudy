@@ -26,14 +26,23 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     rem_list=["ESPatience","alpha","gamma","batch_size"]
  
     if model_name=="LR":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+
+
         # fit the logistic regression model
-        for randnum in range(1,3):
+        for randnum in range(0,3):
+            print("  Random seed: ",randnum)
             runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
             
             # Formatting and saving the output
             outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
-            output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
-            output.to_csv(filepathout, index=False)
+            entry = pd.DataFrame([outputs], columns=colnames)
+            output = pd.concat([output, entry], ignore_index=True)
+            # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
         print(output)
 
     else:
@@ -95,11 +104,11 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 Y_trainvalid,
                 epochs=epochs,
                 num_optuna_trials=num_optuna_trials,
-                 model_name=model_name,
-                 randnum=randnum_split,
-                 folds=folds,
-                 device=device
-                 )
+                model_name=model_name,
+                randnum=randnum_split,
+                folds=folds,
+                device=device
+                )
             lr_max=1e-3
             # formatting the selected hyperparameters to put in the model
             params=trial.params
@@ -133,7 +142,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                     gamma=gamma,
                     batch_size=batch_size,
                     ESPatience=ESPatience,
-                    device=device
+                    device=device,
+                    savename=savename
                     )
                 ## Need to scale X
                 print(np.mean(X_trainvalid))
@@ -184,7 +194,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device,savename=savename)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))

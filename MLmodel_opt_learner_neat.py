@@ -61,7 +61,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         def objective(trial):
 
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
-            ESPatience=trial.suggest_categorical("ESPatience",[2,4,6])
+            #ESPatience=trial.suggest_categorical("ESPatience",[2,4,6])
+            ESPatience=trial.suggest_categorical("ESPatience",[2,4])
             alpha=trial.suggest_float("alpha",0.0,1.0)
             gamma=trial.suggest_float("gamma",1.01,5.0)
             # weights=torch.tensor([alpha,1-alpha].float().cuda())
@@ -252,22 +253,22 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
             # print(class_weights)
 
-            # Data_load.random_seed(randnum)
+            Data_load.random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
                     dsets.train,
                     dsets.valid,
                     #sampler=sampler,
-                    bs=[batch_size,batch_size],#batch_size,
+                    bs=batch_size,
                     num_workers=0,
-                    device=device,
+                    device=device#,
                     #shuffle=False,
                     # batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
                     )
 
-            print(type(dls))
-            print(type(dls.valid))
+            #print(type(dls))
+            #print(type(dls.valid))
             # for x, y in dls.valid:
             #     print(f'mlkmodel line 252; X; shape={x.shape}; min mean = {x.mean((1,2)).min()}; max mean = {x.mean((1,2)).max()}')
             #     print(f'mlkmodel line 252; y; shape={y.shape}; first 10={y[:10]}; mean = {y.cpu().detach().numpy().mean()}')
@@ -342,7 +343,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
 
-def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device):
+def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename):
     # function to fit the model on the train/test data with pre-trained hyperparameters
     # metrics to output whilst fitting
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
@@ -372,11 +373,11 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         dsets.train,
         dsets.valid,
         #sampler=sampler,
-        bs=[batch_size,batch_size],#batch_size, ## [batch_size]?
+        bs=batch_size, ## [batch_size]?
         num_workers=0,
-        device=device,
+        device=device#,
         #shuffle=False,
-        batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
+        #batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
         )
 
 
@@ -407,10 +408,10 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
         #seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
-    learn.save('stage0')
+    learn.save("".join([savename, '_finalmodel_stage0']))
 
     learn.fit_one_cycle(epochs, lr_max)
-    learn.save('stage1')
+    learn.save("".join([savename, '_finalmodel_stage1']))
     #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
     #clf.fit_one_cycle(epochs,lr_max)
@@ -443,7 +444,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
 
 
-def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device):
+def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename):
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
     # define the metrics for model fitting output
@@ -482,12 +483,12 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         dsets.train,
         dsets.valid,
         #sampler=sampler,
-        bs=[batch_size,batch_size],  ##bs=[batch_size,batch_size*2],?
+        bs=batch_size,#[batch_size,batch_size],  ##bs=[batch_size,batch_size*2],?
         num_workers=0,
-        device=device,
+        device=device#,
         #device=torch.device('cpu'), that works on the cpu!!
         #shuffle=False,
-        batch_tfms=[TSStandardize(by_var=True)]#[[TSStandardize(by_var=True)],None]
+        #batch_tfms=[TSStandardize(by_var=True)]#[[TSStandardize(by_var=True)],None]
         )
 
     # print(f'The type of dsets.train is {type(dsets.train)}')
@@ -519,13 +520,14 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
         #seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
-    learn.save('stage0')
 
     #learn.load('stage0')
     #learn.lr_find()
 
+    learn.save("".join([savename, '_finalmodel_stage0']))
+
     learn.fit_one_cycle(epochs, lr_max)
-    learn.save('stage1')
+    learn.save("".join([savename, '_finalmodel_stage1']))
 
     #learn.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
     stop=timeit.default_timer()
