@@ -30,7 +30,7 @@ import Data_load_neat as Data_load
 warnings.filterwarnings('ignore')
 
 
-def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds=5):
+def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds,savename,filepath):
     if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
         print("Input data contains NaN values.")
     # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
@@ -110,8 +110,14 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=XCMPlus#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0)
                 }
+                #model =  XCMPlus(dls.vars, dls.c, dls.len)
+                #xb, yb = dls.one_batch()
+                #bs, c_in, seq_len = xb.shape
+                #c_out = len(np.unique(yb.cpu().numpy()))
+                #model = XCMPlus(c_in, c_out, seq_len, fc_dropout=.5)
+                #test_eq(model.to(xb.device)(xb).shape, (bs, c_out))
                 
 
             if model_name=="ResCNN":
@@ -162,7 +168,12 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
             #model = InceptionTimePlus(dls.vars, dls.c)
             # FIXME: check activation
-            model = arch(dls.vars, dls.c,param_grid, act=nn.LeakyReLU)
+            if model_name=="InceptionTime" or model_name=="ResNet":
+                model = arch(dls.vars, dls.c,**param_grid, act=nn.LeakyReLU)
+            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+                model = arch(dls.vars, dls.c,dls.len,**param_grid)
+            else:
+                model = arch(dls.vars, dls.c,**param_grid)
             model.to(device)
             learner = Learner(
                 dls,
@@ -304,10 +315,11 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     # create optuna study
     #study=optuna.create_study(direction='minimize',pruner=optuna.pruners.HyperbandPruner())
-    optsampler = TPESampler(seed=randnum)  # Make the sampler behave in a deterministic way.
+    #optsampler = TPESampler(seed=randnum)  # Make the sampler behave in a deterministic way.
     study=optuna.create_study(
         direction='maximize',
         pruner=optuna.pruners.MedianPruner(),
+        study_name=savename,
         sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
         )
     study.optimize(
@@ -318,6 +330,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         )
     
     print(study.trials_dataframe())
+    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_", savename, ".csv"])
+    entry = pd.DataFrame(study.trials_dataframe())
+    entry.to_csv(filepathout, index=False)
     print(study.best_params)
     print(study.best_value)
     # print(study.trial_summary())
@@ -337,6 +352,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     print(" Params: ")
     for key, value in trial.params.items():
         print("   {}:{}".format(key,value))
+
+    print(optuna.importance.get_param_importances(study))
+
+    #joblib.dump(study, ".join([savename, '_study.pkl']))
 
     return trial
 

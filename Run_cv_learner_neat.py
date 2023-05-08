@@ -107,7 +107,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 model_name=model_name,
                 randnum=randnum_split,
                 folds=folds,
-                device=device
+                device=device,
+                savename=savename,
+                filepath=filepath
                 )
             lr_max=1e-3
             # formatting the selected hyperparameters to put in the model
