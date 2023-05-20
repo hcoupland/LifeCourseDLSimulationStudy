@@ -128,10 +128,11 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
             output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
 
-            for randnum in range(0,3):
+            for randnum in range(0,1):
                 print("  Random seed: ",randnum)
                 # Rerun the model on train/test with the selected hyperparameters
                 runtime, learner = MLmodel_opt_learner.model_block(
+                    model_name=model_name,
                     arch=arch,
                     X=X_trainvalid,
                     Y=Y_trainvalid,
@@ -192,11 +193,11 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
             output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
             ## instances
-            for randnum in range(0,3):
+            for randnum in range(0,1):
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device,savename=savename)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(model_name=model_name,arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device,savename=savename)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))

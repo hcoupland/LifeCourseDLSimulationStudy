@@ -297,7 +297,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             instance_scores=[]
             
             # find valid_loss for this fold and these hyperparameters
-            for randnum_train in range(0,3):
+            for randnum_train in range(0,1):
+            #for randnum_train in range(0,3):
                 print("  Random seed: ",randnum_train)
                 trial_score_instance= objective(trial)
                 instance_scores.append(trial_score_instance)
@@ -362,7 +363,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
 
-def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename):
+def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename):
     # function to fit the model on the train/test data with pre-trained hyperparameters
     # metrics to output whilst fitting
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
@@ -416,8 +417,16 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
     start=timeit.default_timer()
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
+
+    if model_name=="InceptionTime" or model_name=="ResNet":
+        model = arch(dls.vars, dls.c,**params, act=nn.LeakyReLU)
+    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+        model = arch(dls.vars, dls.c,dls.len,**params)
+    else:
+        model = arch(dls.vars, dls.c,**params)
+
     #model = InceptionTimePlus(dls.vars, dls.c)
-    model = arch(dls.vars, dls.c,params)
+    #model = arch(dls.vars, dls.c,params)
     model.to(device)
     learn = Learner(
         dls, 
@@ -463,7 +472,7 @@ def model_block(arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_s
 
 
 
-def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename):
+def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename):
     # device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
     # define the metrics for model fitting output
@@ -526,8 +535,15 @@ def model_block_nohype(arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_s
     Data_load.random_seed2(randnum,dls=dls)
     start=timeit.default_timer()
 
+    if model_name=="InceptionTime" or model_name=="ResNet":
+        model = arch(dls.vars, dls.c, act=nn.LeakyReLU)
+    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+        model = arch(dls.vars, dls.c,dls.len)
+    else:
+        model = arch(dls.vars, dls.c)
+
     #model = InceptionTimePlus(dls.vars, dls.c)
-    model = arch(dls.vars, dls.c)
+    #model = arch(dls.vars, dls.c)
 
     model.to(device)
 
