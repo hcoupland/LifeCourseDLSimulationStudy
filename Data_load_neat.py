@@ -291,3 +291,46 @@ def stoc_data(Y, X,stoc,randnum):
                     )
     return X_new,X_new3d,Y_stoc,Yorg,splits_new,dls
 
+def add_stoc_new(Y,stoc,randnum):
+    # function to add stochasticity to Y
+    ## Set seed
+    random_seed(randnum)
+
+    # Selects the number of positive values that need to be switched
+    num1s=np.sum(Y)
+    num10=math.ceil(stoc*num1s)
+    which1=np.where(Y==1)[0]
+    which0=np.where(Y==0)[0]
+
+    # Randomly selects the correct number of 1s/0s that will be switched to 0s/1s
+    which10=random.sample(list(which1),num10)
+    which01=random.sample(list(which0),num10)
+
+    #Y_stoc=copy.copy(Y)
+    # Switches the 1s to 0s and 0s to 1s
+    Y[which10]=0
+    Y[which01]=1
+    return Y
+
+
+def stoc_data_new(X_trainvalid, Y_trainvalid, X_test, Y_test, stoc,randnum,randnum_split):
+    ## function to add stochasticity to Y and adjust splits
+    ## Split Y into (train + validation) and test with 80:20 ratio
+    #splits = get_splits(Y, valid_size=0.4, stratify=True, random_state=23, shuffle=True, test_size=0.0)
+    #print(splits)
+
+    ## Add stochasticity to (train + validation) together
+    Ytv_stoc=add_stoc_new(Y_trainvalid,stoc=stoc,randnum=randnum)
+
+    ## Split (train + validation) into train and validation with 33.333333:66.666666
+    sec_splits = get_splits(Ytv_stoc, valid_size=0.33333333, stratify=True,show_plot=False, random_state=randnum_split, shuffle=True, test_size=0.0)
+
+    ## Arrange Y and X for new splits
+    Y_stoc=np.concatenate((Ytv_stoc[sec_splits[0]],Ytv_stoc[sec_splits[1]],Y_test))
+    #Yorg=np.concatenate((Y_trainvalid[sec_splits[0]],Y_trainvalid[sec_splits[1]],Y_test))
+    X_new=np.concatenate((X_trainvalid[sec_splits[0],:,:],X_trainvalid[sec_splits[1],:,:],X_test))
+
+    ## Define the new overall split (not just for train/validation)
+    splits_new=get_splits(Y_stoc, n_splits=1, valid_size=np.shape(Y_trainvalid[sec_splits[1]])[0], test_size=np.shape(Y_test)[0], shuffle=False)
+
+    return X_new,Y_stoc,splits_new
