@@ -10,6 +10,7 @@ import copy
 import Data_load_neat as Data_load
 import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
+import Sig_modelblock
 #import rpy2.rinterface
 
 def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
@@ -33,7 +34,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
 
 
         # fit the logistic regression model
-        for randnum in range(0,3):
+        for randnum in range(0,1):
             print("  Random seed: ",randnum)
             runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
             
@@ -42,6 +43,46 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
             entry = pd.DataFrame([outputs], columns=colnames)
             output = pd.concat([output, entry], ignore_index=True)
             # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
+        print(output)
+
+    elif model_name=="LRpoly":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+
+
+        # fit the logistic regression model
+        for randnum in range(0,1):
+            print("  Random seed: ",randnum)
+            runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodelpoly_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
+            
+            # Formatting and saving the output
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
+            entry = pd.DataFrame([outputs], columns=colnames)
+            output = pd.concat([output, entry], ignore_index=True)
+            # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
+        print(output)
+
+    elif model_name=="Sig":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time", "K"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+        K=2
+        for K in range(1,3):
+            # fit the logistic regression model
+            for randnum in range(0,1):
+                print("  Random seed: ",randnum)
+                runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = Sig_modelblock.LRmodelpoly_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,K=K, randnum=randnum)
+                
+                # Formatting and saving the output
+                outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime, K]
+                entry = pd.DataFrame([outputs], columns=colnames)
+                output = pd.concat([output, entry], ignore_index=True)
+                # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
         output.to_csv(filepathout, index=False)
         print(output)
 
