@@ -62,8 +62,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
             #ESPatience=trial.suggest_categorical("ESPatience",[2,4,6])
-            ESPatience=trial.suggest_categorical("ESPatience",[2,4])
-            alpha=trial.suggest_float("alpha",0.0,1.0)
+            ESPatience=4#trial.suggest_categorical("ESPatience",[2,4])
+            alpha=trial.suggest_float("alpha",0.0,0.5)
             gamma=trial.suggest_float("gamma",1.01,5.0)
             # weights=torch.tensor([alpha,1-alpha].float().cuda())
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
@@ -77,9 +77,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
                     'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
                     'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
-                    'cell_dropout': trial.suggest_float('cell_dropout', 0.0, 1.0),
-                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'cell_dropout': trial.suggest_float('cell_dropout', 0.1, 0.5),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
 
@@ -90,9 +90,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
                     'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
                     'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
-                    'cell_dropout': trial.suggest_float('cell_dropout', 0.0, 1.0),
-                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'cell_dropout': trial.suggest_float('cell_dropout', 0.1, 0.5),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
 
@@ -100,8 +100,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=TCN#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'ks': trial.suggest_categorical('ks', [5,7,9]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
-                    'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'conv_dropout': trial.suggest_float('conv_dropout', 0.1, 0.5),
                     'layers': trial.suggest_categorical('layers', choices=kstcombinations),
                 }
 
@@ -110,7 +110,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=XCMPlus#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0)
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5)
                 }
                 #model =  XCMPlus(dls.vars, dls.c, dls.len)
                 #xb, yb = dls.one_batch()
@@ -129,7 +129,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=ResNetPlus#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', choices=kscombinations),
                 }
 
@@ -138,8 +138,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=InceptionTimePlus#(c_in=X_combined.shape[1], c_out=2)
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.0, 1.0),
-                    'conv_dropout': trial.suggest_float('conv_dropout', 0.0, 1.0),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'conv_dropout': trial.suggest_float('conv_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
@@ -206,7 +206,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # FIXME: I also don't understand when I should be reloading the learner and at what stage?
             #print(learner.summary())
             learner.save('stage0')
-            learner.fit_one_cycle(epochs,lr_max=learning_rate_init)
+            learner.fit_one_cycle(epochs,lr_max=learning_rate_init)#,cbs=[FastAIPruningCallback(learner, trial, "RocAucBinary")])
             learner.save('stage1')
             #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
             # print(learner.recorder.values[-1])
@@ -217,7 +217,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         scores = []
 
         # add batch_size as a hyperparameter
-        batch_size=trial.suggest_categorical('batch_size',[32,64,128])
+        batch_size=trial.suggest_categorical('batch_size',[32,64,96,128])
 
         # # set random seed
         # Data_load.random_seed(randnum,True)
@@ -312,16 +312,41 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     
     # set random seed
     Data_load.random_seed(randnum)
-    torch.set_num_threads(18)
+    #torch.set_num_threads(18)
 
     # create optuna study
     #study=optuna.create_study(direction='minimize',pruner=optuna.pruners.HyperbandPruner())
     #optsampler = TPESampler(seed=randnum)  # Make the sampler behave in a deterministic way.
+    ## fast and terrible rescnn (but will work for others without all parameters)
+    search_space = {
+        #'alpha': [0.05,0.1,0.15,0.2,0.25,0.3, 0.35, 0.5],
+        #'gamma': [1.01,1.25,1.5, 2, 2.5],
+        #'batch_size': [32,64,96]
+        'alpha': [0.05,0.1,0.15,0.2],
+        'gamma': [1.1,1.2,1.3,1.4,1.6,1.7],
+        'batch_size': [32,64,96]
+    }
+
+    ## grid
+    num_optuna_trials=4*6*3
+
+    if model_name=="XCM":
+        search_space = {
+        'alpha': [0.1,0.2,0.3, 0.4,0.5],
+        'gamma': [1.01,1.5, 2],
+        'batch_size': [32],
+        'nf': [32],
+        'fc_dropout': [0.1,0.2,0.3]
+        }
+        num_optuna_trials=5*3*3
+
     study=optuna.create_study(
         direction='maximize',
-        pruner=optuna.pruners.MedianPruner(),
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
         study_name=savename,
-        sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        sampler=optuna.samplers.GridSampler(search_space)#optsampler
+        #sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        #sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
         )
     study.optimize(
         objective_cv,
@@ -329,9 +354,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         show_progress_bar=True#,
         #n_jobs=4
         )
+
     
     print(study.trials_dataframe())
-    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_", savename, ".csv"])
+    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_", savename, ".csv"])
     entry = pd.DataFrame(study.trials_dataframe())
     entry.to_csv(filepathout, index=False)
     print(study.best_params)
@@ -382,9 +408,9 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
     
     # set up the weighted random sampler
-    class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
-    print(class_weights)
-    sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
+    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
+    #print(class_weights)
+    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
 
     # Data_load.random_seed(randnum,True)
 
@@ -492,16 +518,16 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
     #print('line 430')
 
     # set up the weighted random sampler
-    class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
+    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
     #print('line 432')
-    print(class_weights)
-    count=Counter(Y[splits[0]])
-    print(count)
-    wgts=[1/count[0],1/count[1]]
-    print(wgts)
-    print(len(wgts))
-    print(len(dsets))
-    sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
+    #print(class_weights)
+    #count=Counter(Y[splits[0]])
+    #print(count)
+    #wgts=[1/count[0],1/count[1]]
+    #print(wgts)
+    #print(len(wgts))
+    #print(len(dsets))
+    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
 
     # print('dsklthsdiyuerop')
 

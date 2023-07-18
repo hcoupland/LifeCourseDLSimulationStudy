@@ -6,12 +6,8 @@ import numpy as np
 import sklearn.metrics as skm
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
-from sklearn.metrics import average_precision_score
-from sklearn.metrics import f1_score
-from sklearn.metrics import accuracy_score
-from sklearn.metrics import recall_score
-from sklearn.metrics import precision_score
+from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, accuracy_score, recall_score, precision_score
+from sklearn.preprocessing import PolynomialFeatures
 
 import timeit
 
@@ -86,6 +82,38 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
 
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+
+    # get output metrics for test data
+    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
+    return runtime, acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
+
+def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
+    # function to fit and analyse the logistic regression model
+    
+    # random seed
+    Data_load.random_seed(randnum)
+
+    # sclae and one-hot the data
+    #X_scaled=Data_load.prep_data(X, splits)
+    #XStrainvalid=X_scaled[splits[0]]
+    #XStest=X_scaled[splits[1]]
+
+    # flatten the data
+    X_LRtrain, X_LRtest = LM_func(Xtrainvalid, Xtest)
+
+    poly = PolynomialFeatures(2, interaction_only=True)
+    Xpoly = poly.fit_transform(X_LRtrain)
+
+    # fit the logistic regression model to the train data
+    start = timeit.default_timer()
+    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum).fit(Xpoly, Ytrainvalid)
+    stop = timeit.default_timer()
+    runtime=stop - start
+
+    Xpolytest = poly.transform(X_LRtest)
+
+    # get model predictions on the test data
+    LRpred = LRmodel.predict(Xpolytest)
 
     # get output metrics for test data
     acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)

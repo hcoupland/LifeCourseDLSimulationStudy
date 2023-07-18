@@ -17,14 +17,14 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join([filepath,"Simulations/model_results/outputCVL_", savename, ".csv"])
+    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"grid3"])
+    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)
     
     # List of non-model parameters
-    rem_list=["ESPatience","alpha","gamma","batch_size"]
+    rem_list=["alpha","gamma","batch_size"]
  
     if model_name=="LR":
 
@@ -153,12 +153,13 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 filepath=filepath
                 )
             lr_max=1e-3
+            ESPatience=4
             # formatting the selected hyperparameters to put in the model
             params=trial.params
             all_params=copy.copy(params)
             #lr_max=params.get('learning_rate_init')
             batch_size=params.get('batch_size')
-            ESPatience=params.get('ESPatience')
+            #ESPatience=params.get('ESPatience')
             alpha=params.get('alpha')
             gamma=params.get('gamma')
             for key in rem_list:

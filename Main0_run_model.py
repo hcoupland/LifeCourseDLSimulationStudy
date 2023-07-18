@@ -32,10 +32,10 @@ stoc=float(sys.argv[3])
 randnum_split=3#int(sys.argv[3])
 randnum_stoc=4
 epochs=10#int(sys.argv[4])
-num_optuna_trials =50# int(sys.argv[5])
+num_optuna_trials =30# int(sys.argv[5])
 hype= "True"#sys.argv[3]
 imp = "False"#sys.argv[4]
-device = 1#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
+device = 0#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
 folds=5
@@ -85,11 +85,18 @@ def run(name, model_name, randnum_split,randnum_stoc,epochs,num_optuna_trials,hy
     # print(f' mean of Xtraivalid = {np.std(Y_trainvalid)}')
     # print(f' mean of Xtraivalid = {np.std(Y_test)}')
 
+    
+    ### Helen messing around
+    if subset>0:
+        X_raw=X_raw[:subset,:,:]
+        Y=Y[:subset]
+    ## Helen stop messing around
+
     print('Data generated')
 
     #pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
-
     name="".join([ name,"_stoc",str(int(stoc*100))])
+
     ## Runs hyperparameter and fits those models required
     #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
     output=Run_cv_learner.All_run(
