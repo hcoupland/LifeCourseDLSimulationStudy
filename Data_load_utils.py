@@ -221,7 +221,7 @@ def split_data(X, Y,randnum):
     #                    num_workers=0,
     #                )
 
-def add_stoc(Y,stoc,randnum):
+def add_stoc(Y,noise,randnum):
     """ Function to add stochasticity to Y """
 
     ## Set seed
@@ -229,7 +229,7 @@ def add_stoc(Y,stoc,randnum):
 
     # Selects the number of positive values that need to be switched
     num1s=np.sum(Y)
-    num10=math.ceil(stoc*num1s)
+    num10=math.ceil(noise*num1s)
     which1=np.where(Y==1)[0]
     which0=np.where(Y==0)[0]
 

@@ -17,7 +17,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"grid3"])
+    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"randsamp"])
     filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
@@ -25,6 +25,10 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     
     # List of non-model parameters
     rem_list=["alpha","gamma","batch_size"]
+ 
+    # the metrics outputted when fitting the model
+    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
+    
  
     if model_name=="LR":
 
@@ -150,6 +154,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 folds=folds,
                 device=device,
                 savename=savename,
+                metrics=metrics,
                 filepath=filepath
                 )
             lr_max=1e-3
@@ -188,6 +193,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                     batch_size=batch_size,
                     ESPatience=ESPatience,
                     device=device,
+                    metrics=metrics,
                     savename=savename
                     )
                 ## Need to scale X
@@ -239,7 +245,21 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(model_name=model_name,arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,device=device,savename=savename)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(
+                    model_name=model_name,
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    splits=splits_9010,
+                    randnum=randnum,
+                    epochs=epochs,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    device=device,
+                    metrics=metrics,
+                    savename=savename)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))

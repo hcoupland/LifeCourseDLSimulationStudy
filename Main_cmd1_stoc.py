@@ -29,16 +29,16 @@ from tsai.tslearner import TSClassifier
 name = sys.argv[1]
 model_name=sys.argv[2]
 stoc=float(sys.argv[3])
-randnum_split=3#int(sys.argv[3])
-randnum_stoc=4
+randnum_split=3#int(sys.argv[3]) ## random number for initial split of the data
+randnum_stoc=4  ## random number to govern where stochasticity is added to the data
 epochs=10#int(sys.argv[4])
-num_optuna_trials =50# int(sys.argv[5])
+num_optuna_trials =100# int(sys.argv[5])
 hype= "True"#sys.argv[3]
 imp = "False"#sys.argv[4]
 device = 1#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
-folds=5
+folds=3
 
 def run(name, model_name, randnum_split,randnum_stoc,epochs,num_optuna_trials,hype, imp,filepath,stoc, device,subset=-1,folds=5):
     print(name)
@@ -47,8 +47,13 @@ def run(name, model_name, randnum_split,randnum_stoc,epochs,num_optuna_trials,hy
 
     ## Function to obtain the train/test split
     X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+    print(f'First 20 1s indices pre stoc = {np.where(Y_trainvalid==1)[0:19]}; ')
 
     Y_trainvalid_stoc=Data_load.add_stoc_new(Y_trainvalid,stoc=stoc,randnum=randnum_stoc)
+
+    print(f'First 20 1s indices stoc = {np.where(Y_trainvalid_stoc==1)[0:19]}; ')
+
+    ### print to demonstrate that all stoc are the saem as each other
 
     # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
     # y_train, y_test = y[splits[0]], y[splits[-1]]

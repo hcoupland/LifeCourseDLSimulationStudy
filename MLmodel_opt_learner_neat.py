@@ -1,4 +1,4 @@
-## script containing hyperparameter optimisation functions, model fitting functions and output analysis functions
+'''script containing hyperparameter optimisation functions, model fitting functions and output analysis functions'''
 from collections import Counter
 import statistics
 import timeit
@@ -24,35 +24,23 @@ from fastai.vision.all import *
 import Data_load_neat as Data_load
 
 
-#import rpy2.rinterface
-
-
 warnings.filterwarnings('ignore')
 
 
-def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds,savename,filepath):
+def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds,savename,filepath,metrics):
+    ''' function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)''' 
     if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
         print("Input data contains NaN values.")
-    # function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)
-
-    # the metrics outputted when fitting the model
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
 
     # for LSTM-FCN or MLSTM-FCN or TCN
     # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
     iterable = [32,64,96,128,256,32,64,96,128,256,32,64,96,128,256]
     combinations = [list(x) for x in itertools.combinations(iterable=iterable, r=3)]
-    # combinations = []
-    # combinations.extend([list(x) for x in itertools.combinations(iterable=iterable, r=3)])
 
     ksiterable = [1,1,1,3,3,3,5,5,5,7,7,7,9,9,9]
-    # kscombinations = []
-    # kscombinations.extend([list(x) for x in itertools.combinations(iterable=ksiterable, r=3)])
     kscombinations = [list(x) for x in itertools.combinations(iterable=ksiterable, r=3)]
 
     kstiterable = [6,6,8,8,10,10,32,32,64,64,96,96,128,128]
-    # kstcombinations = []
-    # kstcombinations.extend([list(x) for x in itertools.combinations(iterable=kstiterable, r=3)])
     kstcombinations = [list(x) for x in itertools.combinations(iterable=kstiterable, r=3)]
 
     def objective_cv(trial):
@@ -61,17 +49,15 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         def objective(trial):
 
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
-            #ESPatience=trial.suggest_categorical("ESPatience",[2,4,6])
             ESPatience=4#trial.suggest_categorical("ESPatience",[2,4])
             alpha=trial.suggest_float("alpha",0.0,0.5)
             gamma=trial.suggest_float("gamma",1.01,5.0)
-            # weights=torch.tensor([alpha,1-alpha].float().cuda())
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
             
 
             # FIXME: There might be a better way to specify the different models
             if model_name=="MLSTMFCN":
-                arch=MLSTM_FCNPlus#(c_in=X_combined.shape[1], c_out=2)
+                arch=MLSTM_FCNPlus
                 param_grid = {
                     'kss': trial.suggest_categorical('kss', choices=kscombinations),
                     'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
@@ -84,7 +70,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             if model_name=="LSTMFCN":
-                arch=LSTM_FCNPlus#(c_in=X_combined.shape[1], c_out=2)
+                arch=LSTM_FCNPlus
                 param_grid = {
                     'kss': trial.suggest_categorical('kss', choices=kscombinations),
                     'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
@@ -97,7 +83,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             if model_name=="TCN":
-                arch=TCN#(c_in=X_combined.shape[1], c_out=2)
+                arch=TCN
                 param_grid = {
                     'ks': trial.suggest_categorical('ks', [5,7,9]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
@@ -107,26 +93,20 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             if model_name=="XCM":
-                arch=XCMPlus#(c_in=X_combined.shape[1], c_out=2)
+                arch=XCMPlus
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5)
                 }
-                #model =  XCMPlus(dls.vars, dls.c, dls.len)
-                #xb, yb = dls.one_batch()
-                #bs, c_in, seq_len = xb.shape
-                #c_out = len(np.unique(yb.cpu().numpy()))
-                #model = XCMPlus(c_in, c_out, seq_len, fc_dropout=.5)
-                #test_eq(model.to(xb.device)(xb).shape, (bs, c_out))
                 
 
             if model_name=="ResCNN":
-                arch=ResCNN#(c_in=X_combined.shape[1], c_out=2)
+                arch=ResCNN
                 param_grid=dict()
 
 
             if model_name=="ResNet":
-                arch=ResNetPlus#(c_in=X_combined.shape[1], c_out=2)
+                arch=ResNetPlus
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
@@ -135,7 +115,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             if model_name=="InceptionTime":
-                arch=InceptionTimePlus#(c_in=X_combined.shape[1], c_out=2)
+                arch=InceptionTimePlus
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
@@ -143,30 +123,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
-            
 
-            #  TSClassifier (X, y=None, splits=None, tfms=None, inplace=True,
-            #    sel_vars=None, sel_steps=None, weights=None,
-            #    partial_n=None, train_metrics=False, valid_metrics=True,
-            #    bs=[64, 128], batch_size=None, batch_tfms=None,
-            #    pipelines=None, shuffle_train=True, drop_last=True,
-            #    num_workers=0, do_setup=True, device=None, seed=None,
-            #    arch=None, arch_config={}, pretrained=False,
-            #    weights_path=None, exclude_head=True, cut=-1, init=None,
-            #    loss_func=None, opt_func=<function Adam>, lr=0.001,
-            #    metrics=<function accuracy>, cbs=None, wd=None,
-            #    wd_bn_bias=False, train_bn=True, moms=(0.95, 0.85, 0.95),
-            #    path='.', model_dir='models', splitter=<function
-            #    trainable_params>, verbose=False)
-
-
-            #     # fit the model to the train/test data
+            # fit the model to the train/test data
             Data_load.random_seed(randnum_train)
 
-            # print(weights.get_device())
-            #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
-
-            #model = InceptionTimePlus(dls.vars, dls.c)
             # FIXME: check activation
             if model_name=="InceptionTime" or model_name=="ResNet":
                 model = arch(dls.vars, dls.c,**param_grid, act=nn.LeakyReLU)
@@ -179,12 +139,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 dls,
                 model,
                 metrics=metrics,
-                loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
+                loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
                 #seed=randnum_train,
                 cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]# ,ShowGraph()
                 )
-
-            #clf.fit_one_cycle(epochs,lr_max)
 
 
             # learner = TSClassifier(
@@ -202,28 +160,22 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
             #learn.fit_one_cycle(epochs,lr_max=learning_rate_init,callbacks=[FastAIPruningCallback(learn, trial, 'valid_loss')])
             # FIXME: Okay so here I think I save the learner at different stages but have no idea how to properly load it later so I could use it
-            # FIXME: I also don't understand why I would need to save the learner?
-            # FIXME: I also don't understand when I should be reloading the learner and at what stage?
             #print(learner.summary())
             learner.save('stage0')
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)#,cbs=[FastAIPruningCallback(learner, trial, "RocAucBinary")])
             learner.save('stage1')
             #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
-            # print(learner.recorder.values[-1])
-            #return learn.recorder.values[-1][1] ## this returns the valid loss
+
             return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
 
 
         scores = []
 
         # add batch_size as a hyperparameter
-        batch_size=trial.suggest_categorical('batch_size',[32,64,96,128])
+        batch_size=trial.suggest_categorical('batch_size',[32,64,96])
 
-        # # set random seed
-        # Data_load.random_seed(randnum,True)
-        # torch.set_num_threads(18)
-        
-        # divide train data into 5 fold
+
+        # divide train data into folds
         skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=randnum)
         skf.get_n_splits(Xtrainvalid,Ytrainvalid)
         scaler=StandardScaler()
@@ -235,10 +187,6 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # select train and validation data
             Xtrain, Xvalid = Xtrainvalid[train_idx], Xtrainvalid[valid_idx]
             Ytrain, Yvalid = Ytrainvalid[train_idx], Ytrainvalid[valid_idx]
-
-            #print(Counter(Ytrainvalid))
-            #print(Counter(Ytrain))
-            #print(Counter(Yvalid))
 
             # get new splits according to this data
             #splits_kfold=get_predefined_splits([Xtrain,Xvalid])
@@ -258,19 +206,12 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             tfms=[None,Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
 
-            # FIXME: i HAVE GIVEN UP ON WeightedRandomSampler but potentially it is still a good thing to do?
-            # set up the weightedrandom sampler
-            # class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=y_combined[stratified_splits[0]])
-            # sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
-            # print(class_weights)
-
             Data_load.random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
                     dsets.train,
                     dsets.valid,
-                    #sampler=sampler,
                     bs=batch_size,
                     num_workers=0,
                     device=device#,
@@ -328,7 +269,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     }
 
     ## grid
-    num_optuna_trials=4*6*3
+    #num_optuna_trials=4*6*3
 
     if model_name=="XCM":
         search_space = {
@@ -338,15 +279,15 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         'nf': [32],
         'fc_dropout': [0.1,0.2,0.3]
         }
-        num_optuna_trials=5*3*3
+        #num_optuna_trials=5*3*3
 
     study=optuna.create_study(
         direction='maximize',
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
         study_name=savename,
-        sampler=optuna.samplers.GridSampler(search_space)#optsampler
+        #sampler=optuna.samplers.GridSampler(search_space)#optsampler
         #sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
-        #sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
+        sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
         )
     study.optimize(
         objective_cv,
@@ -389,10 +330,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
 
-def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename):
+def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, metrics):
     # function to fit the model on the train/test data with pre-trained hyperparameters
-    # metrics to output whilst fitting
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
 
     # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
 
@@ -406,11 +345,6 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
     #X3d=to3d(X)
     tfms=[None,Categorize()]
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
-    
-    # set up the weighted random sampler
-    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
-    #print(class_weights)
-    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(class_weights),replacement=True)
 
     # Data_load.random_seed(randnum,True)
 
@@ -431,7 +365,6 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
         x,y = dls.one_batch()
         print(sum(y)/len(y))
     ## this shows not 50% classes
-    
 
 
     print(dls.c)
@@ -451,8 +384,6 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
     else:
         model = arch(dls.vars, dls.c,**params)
 
-    #model = InceptionTimePlus(dls.vars, dls.c)
-    #model = arch(dls.vars, dls.c,params)
     model.to(device)
     learn = Learner(
         dls, 
@@ -498,38 +429,16 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
 
 
 
-def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename):
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # function to fit model on pre-defined hyperparameters (when optimisation hasn't occured)
+def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename,metrics):
     # define the metrics for model fitting output
     FLweights=[alpha,1-alpha]
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
     weights=torch.tensor(FLweights, dtype=torch.float).to(device)
 
-    # print(weights.get_device())
     ESPatience=2
-
-    #print('line 426')
 
     # prep the data for the model
     tfms=[None,[Categorize()]]
     dsets = TSDatasets(X, Y, tfms=tfms, splits=splits,inplace=True)
-
-    #print('line 430')
-
-    # set up the weighted random sampler
-    #class_weights=compute_class_weight(class_weight='balanced',classes=np.array( [0,1]),y=Y[splits[0]])
-    #print('line 432')
-    #print(class_weights)
-    #count=Counter(Y[splits[0]])
-    #print(count)
-    #wgts=[1/count[0],1/count[1]]
-    #print(wgts)
-    #print(len(wgts))
-    #print(len(dsets))
-    #sampler=WeightedRandomSampler(weights=class_weights,num_samples=len(dsets),replacement=True)
-
-    # print('dsklthsdiyuerop')
 
     # Data_load.random_seed(randnum,True)
     
@@ -568,9 +477,6 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
     else:
         model = arch(dls.vars, dls.c)
 
-    #model = InceptionTimePlus(dls.vars, dls.c)
-    #model = arch(dls.vars, dls.c)
-
     model.to(device)
 
     learn = Learner(
@@ -582,8 +488,6 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
 
-    #learn.load('stage0')
-    #learn.lr_find()
 
     learn.save("".join([savename, '_finalmodel_stage0']))
 
@@ -596,19 +500,6 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
 
     return runtime, learn
 
-# clf=TSClassifier(X,Y,splits=splits,arch=arch,metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[EarlyStoppingCallback(patience=ESpatience),ReduceLROnPlateau()])
-
-# learn = TSClassifier(
-#     X,
-#     Y,
-#     bs=batch_size,
-#     splits=splits,
-#     arch=arch,#InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
-#     metrics=metrics,
-#     loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
-#     verbose=True,
-#     cbs=[EarlyStoppingCallback(patience=ESpatience), ReduceLROnPlateau()]#,
-# )
 
 
 def test_results(f_model,X_test,Y_test):
