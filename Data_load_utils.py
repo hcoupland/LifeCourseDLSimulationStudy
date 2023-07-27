@@ -138,29 +138,21 @@ def Standard_func(X,splits):
     #Xstnd = np.concatenate([Xtrain,Xvalid])
     return Xstnd
 
-def load_data(name,filepath,subset=-1):
-    ## function to load all the data from the filepath
+def load_data(name,filepath):
+    """Function to load all the data from the filepath"""
 
     X_raw = np.load("".join([filepath,"input_data/",name, "_X.npy"])).astype(np.float32)
 
-    y_raw = np.load("".join([filepath,"input_data/",name, "_YH.npy"]))
+    #y_raw = np.load("".join([filepath,"input_data/",name, "_YH.npy"]))
 
-    y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
+    #y_test = np.expand_dims(y_raw[:, -1].astype(np.int64), -1)
 
-    print(X_raw.shape, y_raw.shape, y_test.shape)
+    #print(X_raw.shape, y_raw.shape, y_test.shape)
 
     #filepath="/home/fkmk708805/data/workdata/708805/helen/Proc_data/"
 
     Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",name, "_YH.npy"])))
     Y = Y_raw[:, np.shape(Y_raw)[1] - 1]
-    print(Y.shape)
-
-
-    ### Helen messing around
-    if subset>0:
-        X_raw=X_raw[:subset,:,:]
-        Y=Y[:subset]
-    ## Helen stop messing around
 
     return X_raw, Y
 
@@ -186,9 +178,6 @@ def split_data(X, Y,randnum):
 
     ## Set seed
     random_seed(randnum)
-    torch.set_num_threads(18)
-
-    #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
 
     ## split out the test set
     splits = get_splits(
@@ -232,73 +221,15 @@ def split_data(X, Y,randnum):
     #                    num_workers=0,
     #                )
 
-def add_stoc(Y,stoc,randnum):
-    # function to add stochasticity to Y
-    ## Set seed
-    random_seed(randnum)
-    torch.set_num_threads(18)
+def add_stoc(Y,noise,randnum):
+    """ Function to add stochasticity to Y """
 
-    #copies Y
-    Y_outcheck=copy.copy(Y)
-
-    # Selects the number of positive values that need to be switched
-    num1s=np.sum(Y_outcheck)
-    num10=math.ceil(stoc*num1s)
-    which1=np.where(Y_outcheck==1)[0]
-    which0=np.where(Y_outcheck==0)[0]
-
-    # Randomly selects the correct number of 1s/0s that will be switched to 0s/1s
-    which10=random.sample(list(which1),num10)
-    which01=random.sample(list(which0),num10)
-
-    Y_outcheck2=copy.copy(Y_outcheck)
-    # Switches the 1s to 0s and 0s to 1s
-    Y_outcheck2[which10]=0
-    Y_outcheck2[which01]=1
-    return Y_outcheck2
-
-def stoc_data(Y, X,stoc,randnum):
-    ## function to add stochasticity to Y and adjust splits
-    ## Split Y into (train + validation) and test with 80:20 ratio
-    splits = get_splits(Y, valid_size=0.4, stratify=True, random_state=23, shuffle=True, test_size=0.0)
-    #print(splits)
-
-    Ytv=copy.copy(Y[splits[0]])
-    Xtv=copy.copy(X[splits[0],:,:])
-    ## Add stochasticity to (train + validation) together
-    Ytv_stoc=add_stoc(Ytv,stoc=stoc,randnum=randnum)
-
-    ## Split (train + validation) into train and validation with 33.333333:66.666666
-    sec_splits = get_splits(Ytv_stoc, valid_size=0.33333333, stratify=True, random_state=23, shuffle=True, test_size=0.0)
-
-    ## Arrange Y and X for new splits
-    Y_stoc=np.concatenate((Ytv_stoc[sec_splits[0]],Ytv_stoc[sec_splits[1]],Y[splits[1]]))
-    Yorg=np.concatenate((Ytv[sec_splits[0]],Ytv[sec_splits[1]],Y[splits[1]]))
-    X_new=np.concatenate((Xtv[sec_splits[0],:,:],Xtv[sec_splits[1],:,:],X[splits[1],:,:]))
-    X_new3d = to3d(X_new)
-
-    ## Define the new overall split (not just for train/validation)
-    splits_new=get_splits(Y_stoc, n_splits=1, valid_size=np.shape(Ytv[sec_splits[1]])[0], test_size=np.shape(Y[splits[1]])[0], shuffle=False)
-
-    tfms = [None, [Categorize()]]
-    dsets = TSDatasets(X_new3d, Y_stoc, tfms=tfms, splits=splits_new, inplace=True)
-    dls = TSDataLoaders.from_dsets(
-                        dsets.train,
-                        dsets.valid,
-                        bs=[64, 128],
-                        batch_tfms=[TSStandardize(by_var=True)],
-                        num_workers=0,
-                    )
-    return X_new,X_new3d,Y_stoc,Yorg,splits_new,dls
-
-def add_stoc_new(Y,stoc,randnum):
-    # function to add stochasticity to Y
     ## Set seed
     random_seed(randnum)
 
     # Selects the number of positive values that need to be switched
     num1s=np.sum(Y)
-    num10=math.ceil(stoc*num1s)
+    num10=math.ceil(noise*num1s)
     which1=np.where(Y==1)[0]
     which0=np.where(Y==0)[0]
 
@@ -306,14 +237,13 @@ def add_stoc_new(Y,stoc,randnum):
     which10=random.sample(list(which1),num10)
     which01=random.sample(list(which0),num10)
 
-    #Y_stoc=copy.copy(Y)
     # Switches the 1s to 0s and 0s to 1s
     Y[which10]=0
     Y[which01]=1
     return Y
 
 
-def stoc_data_new(X_trainvalid, Y_trainvalid, X_test, Y_test, stoc,randnum,randnum_split):
+def stoc_data(X_trainvalid, Y_trainvalid, X_test, Y_test, stoc,randnum,randnum_split):
     ## function to add stochasticity to Y and adjust splits
     ## Split Y into (train + validation) and test with 80:20 ratio
     #splits = get_splits(Y, valid_size=0.4, stratify=True, random_state=23, shuffle=True, test_size=0.0)

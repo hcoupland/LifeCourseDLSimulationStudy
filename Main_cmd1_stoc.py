@@ -1,6 +1,7 @@
 import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
+import sys
 import torch
 import importlib
 import fastai
@@ -25,26 +26,34 @@ from tsai.tslearner import TSClassifier
 
 
 # load in arguments from command line
-name = "data_2real1bigdet" #sys.argv[1]#
-model_name="InceptionTime"#sys.argv[2]#
-randnum_split=3#int(sys.argv[3])
-epochs=1#int(sys.argv[4])
-num_optuna_trials =10# int(sys.argv[5])
-hype= "False"# sys.argv[6]
-imp = "False"
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+name = sys.argv[1]
+model_name=sys.argv[2]
+stoc=float(sys.argv[3])
+randnum_split=3#int(sys.argv[3]) ## random number for initial split of the data
+randnum_stoc=4  ## random number to govern where stochasticity is added to the data
+epochs=10#int(sys.argv[4])
+num_optuna_trials =100# int(sys.argv[5])
+hype= "True"#sys.argv[3]
+imp = "False"#sys.argv[4]
+device = 1#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
 folds=3
 
-def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filepath, device,subset=-1,folds=5):
+def run(name, model_name, randnum_split,randnum_stoc,epochs,num_optuna_trials,hype, imp,filepath,stoc, device,subset=-1,folds=5):
     print(name)
     ## Function to load in data
     X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath,subset=subset)
 
     ## Function to obtain the train/test split
     X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+    print(f'First 20 1s indices pre stoc = {np.where(Y_trainvalid==1)[0:19]}; ')
 
+    Y_trainvalid_stoc=Data_load.add_stoc_new(Y_trainvalid,stoc=stoc,randnum=randnum_stoc)
+
+    print(f'First 20 1s indices stoc = {np.where(Y_trainvalid_stoc==1)[0:19]}; ')
+
+    ### print to demonstrate that all stoc are the saem as each other
 
     # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?
     # y_train, y_test = y[splits[0]], y[splits[-1]]
@@ -85,14 +94,14 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
 
     #pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
 
-
+    name="".join([ name,"_stoc",str(int(stoc*100))])
     ## Runs hyperparameter and fits those models required
     #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
     output=Run_cv_learner.All_run(
         name=name,
         model_name=model_name,
         X_trainvalid=X_trainvalid, 
-        Y_trainvalid=Y_trainvalid, 
+        Y_trainvalid=Y_trainvalid_stoc, 
         X_test=X_test, 
         Y_test=Y_test, 
         randnum_split=randnum_split,  
@@ -109,4 +118,4 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
     return output
 
 if __name__ == '__main__':
-    run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)
+    run(name=name, model_name=model_name,randnum_stoc=randnum_stoc,stoc=stoc, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)

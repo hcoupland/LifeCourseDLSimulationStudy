@@ -1,6 +1,7 @@
 import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
+import sys
 import torch
 import importlib
 import fastai
@@ -25,14 +26,14 @@ from tsai.tslearner import TSClassifier
 
 
 # load in arguments from command line
-name = "data_2real1bigdet" #sys.argv[1]#
-model_name="InceptionTime"#sys.argv[2]#
+name = sys.argv[1]
+model_name=sys.argv[2]
 randnum_split=3#int(sys.argv[3])
-epochs=1#int(sys.argv[4])
-num_optuna_trials =10# int(sys.argv[5])
-hype= "False"# sys.argv[6]
-imp = "False"
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+epochs=10#int(sys.argv[4])
+num_optuna_trials =100# int(sys.argv[5])
+hype= "True"#sys.argv[3]
+imp = "False"#sys.argv[4]
+device = 0#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
 folds=3
@@ -44,6 +45,7 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
 
     ## Function to obtain the train/test split
     X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+    print(f'First 20 1s indices pre stoc = {np.where(Y_trainvalid==1)[0:19]}; ')
 
 
     # X_train, X_test = X_raw[splits[0]], X_raw[splits[-1]] # Before it was: splits[1] --> this might be a bug!?

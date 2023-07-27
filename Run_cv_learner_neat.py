@@ -10,30 +10,84 @@ import copy
 import Data_load_neat as Data_load
 import LM_cv_neat as LM_cv
 import MLmodel_opt_learner_neat as MLmodel_opt_learner
+import Sig_modelblock
 #import rpy2.rinterface
 
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False):
+def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath,device,randnum_split=8,  epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype])
-    filepathout="".join(["C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/model_results/outputCVL_", savename, ".csv"])
+    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"randsamp"])
+    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)
     
     # List of non-model parameters
-    rem_list=["ESPatience","alpha","gamma","batch_size"]
+    rem_list=["alpha","gamma","batch_size"]
+ 
+    # the metrics outputted when fitting the model
+    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
+    
  
     if model_name=="LR":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+
+
         # fit the logistic regression model
-        for randnum in range(1,3):
+        for randnum in range(0,1):
+            print("  Random seed: ",randnum)
             runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
             
             # Formatting and saving the output
             outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
-            output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
-            output.to_csv(filepathout, index=False)
+            entry = pd.DataFrame([outputs], columns=colnames)
+            output = pd.concat([output, entry], ignore_index=True)
+            # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
+        print(output)
+
+    elif model_name=="LRpoly":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+
+
+        # fit the logistic regression model
+        for randnum in range(0,1):
+            print("  Random seed: ",randnum)
+            runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = LM_cv.LRmodelpoly_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum)
+            
+            # Formatting and saving the output
+            outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime]
+            entry = pd.DataFrame([outputs], columns=colnames)
+            output = pd.concat([output, entry], ignore_index=True)
+            # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
+        print(output)
+
+    elif model_name=="Sig":
+
+        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time", "K"]
+        output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
+
+        K=2
+        for K in range(1,3):
+            # fit the logistic regression model
+            for randnum in range(0,1):
+                print("  Random seed: ",randnum)
+                runtime, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 = Sig_modelblock.LRmodelpoly_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,K=K, randnum=randnum)
+                
+                # Formatting and saving the output
+                outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, LR00, LR01, LR10, LR11, runtime, K]
+                entry = pd.DataFrame([outputs], columns=colnames)
+                output = pd.concat([output, entry], ignore_index=True)
+                # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
+        output.to_csv(filepathout, index=False)
         print(output)
 
     else:
@@ -62,7 +116,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
         
 
         ## Set seed
-        Data_load.random_seed(randnum_split, True)
+        Data_load.random_seed(randnum_split)
         torch.set_num_threads(18)
 
         # FIXME: Here I Split out 10 percent of the trainvalid set to use as a final validation set - not sure if there is a better way to do this - potentially I should do it at the start?
@@ -90,14 +144,27 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             # loop for hyperparameter search
 
             # find the hyperparameters using optuna and cross-validation on train/valid
-            trial=MLmodel_opt_learner.hyperopt(X_trainvalid,Y_trainvalid,epochs=epochs,num_optuna_trials=num_optuna_trials, model_name=model_name,randnum=randnum_split)
+            trial=MLmodel_opt_learner.hyperopt(
+                X_trainvalid,
+                Y_trainvalid,
+                epochs=epochs,
+                num_optuna_trials=num_optuna_trials,
+                model_name=model_name,
+                randnum=randnum_split,
+                folds=folds,
+                device=device,
+                savename=savename,
+                metrics=metrics,
+                filepath=filepath
+                )
             lr_max=1e-3
+            ESPatience=4
             # formatting the selected hyperparameters to put in the model
             params=trial.params
             all_params=copy.copy(params)
             #lr_max=params.get('learning_rate_init')
             batch_size=params.get('batch_size')
-            ESPatience=params.get('ESPatience')
+            #ESPatience=params.get('ESPatience')
             alpha=params.get('alpha')
             gamma=params.get('gamma')
             for key in rem_list:
@@ -108,10 +175,27 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
 
-            for randnum in range(0,3):
+            for randnum in range(0,1):
                 print("  Random seed: ",randnum)
                 # Rerun the model on train/test with the selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,params=params,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size,ESPatience=ESPatience)
+                runtime, learner = MLmodel_opt_learner.model_block(
+                    model_name=model_name,
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    splits=splits_9010,
+                    randnum=randnum,
+                    epochs=epochs,
+                    params=params,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    ESPatience=ESPatience,
+                    device=device,
+                    metrics=metrics,
+                    savename=savename
+                    )
                 ## Need to scale X
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
@@ -157,11 +241,25 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, randnum_
             output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
             ## instances
-            for randnum in range(0,3):
+            for randnum in range(0,1):
                 print("  Random seed: ",randnum)
 
                 # Fitting the model on train/test with pre-selected hyperparameters
-                runtime, learner = MLmodel_opt_learner.model_block_nohype(arch=arch,X=X_trainvalid,Y=Y_trainvalid,splits=splits_9010,randnum=randnum,epochs=epochs,lr_max=lr_max,alpha=alpha,gamma=gamma,batch_size=batch_size)
+                runtime, learner = MLmodel_opt_learner.model_block_nohype(
+                    model_name=model_name,
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    splits=splits_9010,
+                    randnum=randnum,
+                    epochs=epochs,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    device=device,
+                    metrics=metrics,
+                    savename=savename)
                 print(np.mean(X_trainvalid))
                 print(np.mean(X_test))
                 print(np.std(X_trainvalid))
