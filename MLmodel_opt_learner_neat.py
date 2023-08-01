@@ -124,13 +124,28 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
 
+            if model_name=="PatchTST":
+                arch=PatchTST
+                param_grid = {
+                    'n_layers': trial.suggest_categorical('n_layers', [2,3,4]),
+                    'n_heads': trial.suggest_categorical('n_heads', [6,8,10]),
+                    'd_model': trial.suggest_categorical('d_model', [384,512,640]),
+                    'd_ff': trial.suggest_categorical('d_ff', [1024,2048,4096]),
+                    'dropout': trial.suggest_float('dropout', 0.1, 0.5),
+                    'attn_dropout': trial.suggest_float('attn_dropout', 0.1, 0.5),
+                    'patch_len': trial.suggest_categorical('patch_len', [8,16,32]),
+                    'stride': trial.suggest_categorical('n_heads', [6,8,10]),
+                    'kernel_size': trial.suggest_categorical('n_heads', [16,25,36])
+                }
+
+
             # fit the model to the train/test data
             Data_load.random_seed(randnum_train)
 
             # FIXME: check activation
             if model_name=="InceptionTime" or model_name=="ResNet":
                 model = arch(dls.vars, dls.c,**param_grid, act=nn.LeakyReLU)
-            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="PatchTST":
                 model = arch(dls.vars, dls.c,dls.len,**param_grid)
             else:
                 model = arch(dls.vars, dls.c,**param_grid)

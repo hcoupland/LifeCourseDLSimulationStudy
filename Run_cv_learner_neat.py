@@ -114,6 +114,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
         if model_name=="MLSTMFCN":
             arch=MLSTM_FCNPlus
         
+        if model_name=="PatchTST":
+            arch=PatchTST
 
         ## Set seed
         Data_load.random_seed(randnum_split)
