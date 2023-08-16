@@ -10,41 +10,17 @@ import importlib
 import fastai
 import tsai
 import copy
-importlib.reload(fastai)
-importlib.reload(tsai)
+#importlib.reload(fastai)
+#importlib.reload(tsai)
 import signatory
-import timeit
 
 from sklearn.linear_model import LogisticRegression
 import Data_load_neat as Data_load
 import LM_cv_neat
 
 from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, accuracy_score, recall_score, precision_score, brier_score_loss
-from sklearn.linear_model import LogisticRegression
 
 
-import Data_load_neat as Data_load
-
-
-# load in arguments from command line
-name = "data_2real5newbigdet"
-model_name="ResNet"
-randnum_split=3
-epochs=8
-device = 1
-filepath="/home/DIDE/smishra/Simulations/"
-folds=5
-randnum=1
-
-X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath)
-
-## Function to obtain the train/test split
-X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
-
-## Now scale all the data for ease (can fix this later)
-X_scaled=Data_load.prep_data(X_raw,splits)
-
-X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
 
 def Sig_func(X_trainvalid, X_test, K):
 
