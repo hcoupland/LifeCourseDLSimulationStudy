@@ -6,7 +6,7 @@ import numpy as np
 import sklearn.metrics as skm
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, accuracy_score, recall_score, precision_score
+from sklearn.metrics import roc_auc_score, average_precision_score, f1_score, accuracy_score, recall_score, precision_score, brier_score_loss
 from sklearn.preprocessing import PolynomialFeatures
 
 import timeit
@@ -44,11 +44,13 @@ def metrics_bin(pred, y_test):
     fone = f1_score(y_test,pred)
     auc = roc_auc_score(y_test, pred)
     prc= average_precision_score(y_test,pred)
+    brier = brier_score_loss(y_test,pred)
     print("{:<40} {:.6f}".format("Accuracy:", acc))
     print("{:<40} {:.6f}".format("Precision:", prec))
     print("{:<40} {:.6f}".format("Recall:", rec))
     print("{:<40} {:.6f}".format("F1 score:", fone))
     print("{:<40} {:.6f}".format("AUC score:", auc))
+    print("{:<40} {:.6f}".format("Brier score:", brier))
 
     LR00 = np.sum(pred[(pred == y_test) & (y_test == 0)] + 1)
     LR10 = np.sum(pred[(pred != y_test) & (y_test == 1)] + 1)
@@ -58,7 +60,7 @@ def metrics_bin(pred, y_test):
     print("{:<40} {:.6f}".format("Predicted 0 when actually 1:", LR10))
     print("{:<40} {:.6f}".format("Predicted 1 when actually 0:", LR01))
     print("{:<40} {:.6f}".format("Predicted 1 when actually 1:", LR11))
-    return acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11
+    return acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     # function to fit and analyse the logistic regression model
@@ -84,7 +86,7 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     LRpred = LRmodel.predict(X_LRtest)
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
+    acc, prec, rec, fone, auc, brier, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
     return runtime, acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
 
 def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
@@ -106,7 +108,7 @@ def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()
-    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum).fit(Xpoly, Ytrainvalid)
+    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(Xpoly, Ytrainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
 
@@ -116,6 +118,6 @@ def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     LRpred = LRmodel.predict(Xpolytest)
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
     return runtime, acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
 

@@ -37,7 +37,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     iterable = [32,64,96,128,256,32,64,96,128,256,32,64,96,128,256]
     combinations = [list(x) for x in itertools.combinations(iterable=iterable, r=3)]
 
-    ksiterable = [1,1,1,3,3,3,5,5,5,7,7,7,9,9,9]
+    ksiterable = [3,3,3,5,5,5,7,7,7,9,9,9]
     kscombinations = [list(x) for x in itertools.combinations(iterable=ksiterable, r=3)]
 
     kstiterable = [6,6,8,8,10,10,32,32,64,64,96,96,128,128]
@@ -63,9 +63,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
                     'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
                     'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
-                    'cell_dropout': trial.suggest_float('cell_dropout', 0.1, 0.5),
-                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'cell_dropout': 0.2,#trial.suggest_float('cell_dropout', 0.1, 0.5),
+                    'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
 
@@ -109,7 +109,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=ResNetPlus
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', choices=kscombinations),
                 }
 
@@ -118,8 +118,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=InceptionTimePlus
                 param_grid = {
                     'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
-                    'conv_dropout': trial.suggest_float('conv_dropout', 0.1, 0.5),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'conv_dropout': 0.2,#trial.suggest_float('conv_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
@@ -128,14 +128,27 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 arch=PatchTST
                 param_grid = {
                     'n_layers': trial.suggest_categorical('n_layers', [2,3,4]),
-                    'n_heads': trial.suggest_categorical('n_heads', [6,8,10]),
-                    'd_model': trial.suggest_categorical('d_model', [384,512,640]),
-                    'd_ff': trial.suggest_categorical('d_ff', [1024,2048,4096]),
+                    #'n_heads': trial.suggest_categorical('n_heads', [6,8,10]),
+                    #'d_model': trial.suggest_categorical('d_model', [384,512,640]),
+                    #'d_ff': trial.suggest_categorical('d_ff', [1024,2048,4096]),
                     'dropout': trial.suggest_float('dropout', 0.1, 0.5),
                     'attn_dropout': trial.suggest_float('attn_dropout', 0.1, 0.5),
                     'patch_len': trial.suggest_categorical('patch_len', [8,16,32]),
-                    'stride': trial.suggest_categorical('n_heads', [6,8,10]),
-                    'kernel_size': trial.suggest_categorical('n_heads', [16,25,36])
+                    #'stride': trial.suggest_categorical('stride', [6,8,10]),
+                    'kernel_size': trial.suggest_categorical('kernel_size', [16,25,36])
+                }
+
+            if model_name=="LSTMAttention":
+                arch=LSTMAttention
+                param_grid = {
+                    'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
+                    'd_ff': trial.suggest_categorical('d_ff', [64,128,256]),
+                    'encoder_layers': trial.suggest_categorical('encoder_layers', [2,3,4]),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [32,64,128]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'encoder_dropout': trial.suggest_float('encoder_dropout', 0.1, 0.5),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
 
@@ -145,7 +158,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             # FIXME: check activation
             if model_name=="InceptionTime" or model_name=="ResNet":
                 model = arch(dls.vars, dls.c,**param_grid, act=nn.LeakyReLU)
-            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="PatchTST":
+            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="LSTMAttention" or model_name=="MLSTMFCN" or model_name=="PatchTST":
                 model = arch(dls.vars, dls.c,dls.len,**param_grid)
             else:
                 model = arch(dls.vars, dls.c,**param_grid)
@@ -182,12 +195,13 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             #learner.save_all(path='export', dls_fname='dls', model_fname='model', learner_fname='learner')
 
             return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+            #return learner.recorder.values[-1][1] ## this returns the auc (5 is brier score)
 
 
         scores = []
 
         # add batch_size as a hyperparameter
-        batch_size=trial.suggest_categorical('batch_size',[32,64,96])
+        batch_size=32#trial.suggest_categorical('batch_size',[32,64,96])
 
 
         # divide train data into folds
@@ -394,7 +408,7 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
 
     if model_name=="InceptionTime" or model_name=="ResNet":
         model = arch(dls.vars, dls.c,**params, act=nn.LeakyReLU)
-    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="LSTMAttention" or model_name=="PatchTST":
         model = arch(dls.vars, dls.c,dls.len,**params)
     else:
         model = arch(dls.vars, dls.c,**params)
@@ -487,7 +501,7 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
 
     if model_name=="InceptionTime" or model_name=="ResNet":
         model = arch(dls.vars, dls.c, act=nn.LeakyReLU)
-    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN":
+    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="LSTMAttention":
         model = arch(dls.vars, dls.c,dls.len)
     else:
         model = arch(dls.vars, dls.c)
