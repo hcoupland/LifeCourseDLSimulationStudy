@@ -9,7 +9,7 @@ import Data_load_neat as Data_load
 import scipy
 
 def Sig_func_original(X_trainvalid, X_test, K):
-
+    print(f'Original')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -60,12 +60,12 @@ def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randn
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_original(X_trainvalid, X_test, K)
-
+    print("Sig applied")
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -78,7 +78,7 @@ def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randn
     return runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def Sig_func_basepoint(X_trainvalid, X_test, K):
-
+    print(f'Basepoint')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -135,12 +135,12 @@ def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, rand
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint(X_trainvalid, X_test, K)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -153,7 +153,7 @@ def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, rand
     return runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def Sig_func_basepoint_LL(X_trainvalid, X_test, K):
-
+    print(f'BasepointLL')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -217,12 +217,12 @@ def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_LL(X_trainvalid, X_test, K)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -236,7 +236,7 @@ def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
 
 
 def Sig_func_LL(X_trainvalid, X_test, K):
-
+    print(f'LL')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -294,12 +294,12 @@ def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_LL(X_trainvalid, X_test, K)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -312,7 +312,7 @@ def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
     return runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def Sig_func_original_int(X_trainvalid, X_test, K, int_factor):
-
+    print(f'Original')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -322,7 +322,7 @@ def Sig_func_original_int(X_trainvalid, X_test, K, int_factor):
     X_sigtest = np.zeros(shape=[num_samples_test, 1, sig_length], dtype=float)
 
     new_num_timepoints=num_timepoints*int_factor
-    xint=np.arrange(0,num_timepoints)
+    xint=np.arange(0,num_timepoints)
     xint_newtimepoints=np.linspace(0,num_timepoints-1,new_num_timepoints)
 
     for i in range(0, num_samples):
@@ -372,12 +372,12 @@ def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer() 
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_original_int(X_trainvalid, X_test, K,int_factor)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -390,7 +390,7 @@ def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     return runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def Sig_func_basepoint_int(X_trainvalid, X_test, K, int_factor):
-
+    print(f'Basepoint')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -400,7 +400,7 @@ def Sig_func_basepoint_int(X_trainvalid, X_test, K, int_factor):
     X_sigtest = np.zeros(shape=[num_samples_test, 1, sig_length], dtype=float)
     
     new_num_timepoints=num_timepoints*int_factor
-    xint=np.arrange(0,num_timepoints)
+    xint=np.arange(0,num_timepoints)
     xint_newtimepoints=np.linspace(0,num_timepoints-1,new_num_timepoints)
 
     for i in range(0, num_samples):
@@ -457,12 +457,12 @@ def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, 
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_int(X_trainvalid, X_test, K,int_factor)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -475,7 +475,7 @@ def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, 
     return runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def Sig_func_basepoint_LL_int(X_trainvalid, X_test, K, int_factor):
-
+    print(f'BasepointLL')
     num_samples,num_features,num_timepoints = np.shape(X_trainvalid)
     num_samples_test = np.shape(X_test)[0]
     print(f'num features = {num_features}; num timepoints = {num_timepoints}')
@@ -486,7 +486,7 @@ def Sig_func_basepoint_LL_int(X_trainvalid, X_test, K, int_factor):
     X_sigtest = np.zeros(shape=[num_samples_test, 1, sig_length], dtype=float)
     
     new_num_timepoints=num_timepoints*int_factor
-    xint=np.arrange(0,num_timepoints)
+    xint=np.arange(0,num_timepoints)
     xint_newtimepoints=np.linspace(0,num_timepoints-1,new_num_timepoints)
 
     for i in range(0, num_samples):
@@ -545,15 +545,15 @@ def Sig_func_basepoint_LL_int(X_trainvalid, X_test, K, int_factor):
 
 def SIGmodel_block_basepoint_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor):
     # function to fit and analyse the logistic regression model
-    
+    print(f'LL')
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_LL_int(X_trainvalid, X_test, K,int_factor)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start
@@ -578,7 +578,7 @@ def Sig_func_LL_int(X_trainvalid, X_test, K,int_factor):
     X_sigtest = np.zeros(shape=[num_samples_test, 1, sig_length], dtype=float)
     
     new_num_timepoints=num_timepoints*int_factor
-    xint=np.arrange(0,num_timepoints)
+    xint=np.arange(0,num_timepoints)
     xint_newtimepoints=np.linspace(0,num_timepoints-1,new_num_timepoints)
 
     for i in range(0, num_samples):
@@ -635,12 +635,12 @@ def SIGmodel_block_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum
     
     # random seed
     Data_load.random_seed(randnum)
-
+    start = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_LL_int(X_trainvalid, X_test, K,int_factor)
 
     # fit the logistic regression model to the train data
-    start = timeit.default_timer()
+    
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Y_trainvalid)
     stop = timeit.default_timer()
     runtime=stop - start

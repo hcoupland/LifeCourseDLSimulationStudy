@@ -50,6 +50,7 @@ def metrics_bin(pred, y_test):
     print("{:<40} {:.6f}".format("Recall:", rec))
     print("{:<40} {:.6f}".format("F1 score:", fone))
     print("{:<40} {:.6f}".format("AUC score:", auc))
+    print("{:<40} {:.6f}".format("PRC score:", prc))
     print("{:<40} {:.6f}".format("Brier score:", brier))
 
     LR00 = np.sum(pred[(pred == y_test) & (y_test == 0)] + 1)
@@ -57,8 +58,9 @@ def metrics_bin(pred, y_test):
     LR01 = np.sum(pred[(pred != y_test) & (y_test == 0)])
     LR11 = np.sum(pred[(pred == y_test) & (y_test == 1)])
     print("{:<40} {:.6f}".format("Predicted 0 when actually 0:", LR00))
-    print("{:<40} {:.6f}".format("Predicted 0 when actually 1:", LR10))
     print("{:<40} {:.6f}".format("Predicted 1 when actually 0:", LR01))
+    print("{:<40} {:.6f}".format("Predicted 0 when actually 1:", LR10))
+   
     print("{:<40} {:.6f}".format("Predicted 1 when actually 1:", LR11))
     return acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 

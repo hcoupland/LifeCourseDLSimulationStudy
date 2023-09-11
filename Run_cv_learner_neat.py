@@ -17,8 +17,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"randsamp_drop2"])
-    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_drop_", savename, ".csv"])
+    savename="".join([ name,"_",model_name,"_rand",str(int(randnum_split)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"randsamp_drop2_finalhype_"])
+    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_drop_finalhype_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
 
     print(model_name)
@@ -27,7 +27,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
     rem_list=["alpha","gamma","batch_size"]
  
     # the metrics outputted when fitting the model
-    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore()]
+    metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore(),APScoreBinary()]
     
  
     if model_name=="LR":
@@ -76,49 +76,57 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
         output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
     
-        for K in range(1,5):
+        for K in range(1,4):
             # fit the logistic regression model
             for randnum in range(0,1):
                 print("  Random seed: ",randnum)
+                print(f'K={K}')
                 sig_name="org"
-                runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
+                runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
                 outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,1]
                 entry = pd.DataFrame([outputs], columns=colnames)
                 output = pd.concat([output, entry], ignore_index=True)
+                print(f'K={K}')
                 sig_name="base"
-                runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
+                runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
                 outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,1]
                 entry = pd.DataFrame([outputs], columns=colnames)
                 output = pd.concat([output, entry], ignore_index=True)
+                print(f'K={K}')
                 sig_name="LL"
-                runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
+                runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
                 outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,1]
                 entry = pd.DataFrame([outputs], columns=colnames)
                 output = pd.concat([output, entry], ignore_index=True)
+                print(f'K={K}')
                 sig_name="baseLL"
-                runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
+                runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum)
                 outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,1]
                 entry = pd.DataFrame([outputs], columns=colnames)
                 output = pd.concat([output, entry], ignore_index=True)
                 # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
-                for int_factor in [2,4,10,100,1000]:
+                for int_factor in [10,100,1000]:
+                    print(f'K={K}; int_factor={int_factor}')
                     sig_name="org"
-                    runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
+                    runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
                     outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,int_factor]
                     entry = pd.DataFrame([outputs], columns=colnames)
                     output = pd.concat([output, entry], ignore_index=True)
+                    print(f'K={K}; int_factor={int_factor}')
                     sig_name="base"
-                    runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
+                    runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
                     outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,int_factor]
                     entry = pd.DataFrame([outputs], columns=colnames)
                     output = pd.concat([output, entry], ignore_index=True)
+                    print(f'K={K}; int_factor={int_factor}')
                     sig_name="LL"
-                    runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
+                    runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
                     outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,int_factor]
                     entry = pd.DataFrame([outputs], columns=colnames)
                     output = pd.concat([output, entry], ignore_index=True)
+                    print(f'K={K}; int_factor={int_factor}')
                     sig_name="baseLL"
-                    runtime, acc, prec, rec, fone, auc, prc, brier = LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
+                    runtime, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor)
                     outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, runtime, K,int_factor]
                     entry = pd.DataFrame([outputs], columns=colnames)
                     output = pd.concat([output, entry], ignore_index=True)
@@ -271,9 +279,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test, filepath
         else:
             # loop for fitting model with generic/pre-specified hyperparameters
             lr_max=1e-3
-            batch_size=64
+            batch_size=32
             alpha=0.5
-            gamma=3
+            gamma=2
             # output=[]
 
             colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time","lr_max","batch_size","alpha","gamma"]

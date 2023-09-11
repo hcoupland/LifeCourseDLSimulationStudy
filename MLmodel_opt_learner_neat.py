@@ -34,14 +34,14 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     # for LSTM-FCN or MLSTM-FCN or TCN
     # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
-    iterable = [32,64,96,128,256,32,64,96,128,256,32,64,96,128,256]
-    combinations = [list(x) for x in itertools.combinations(iterable=iterable, r=3)]
+    iterable = [32,64,96,128,32,64,96,128,32,64,96,128]
+    combinations = [list(x) for x in itertools.product(iterable, repeat=3)]
 
-    ksiterable = [3,3,3,5,5,5,7,7,7,9,9,9]
-    kscombinations = [list(x) for x in itertools.combinations(iterable=ksiterable, r=3)]
+    ksiterable = [3,3,3,5,5,5,7,7,7]
+    kscombinations = [list(x) for x in itertools.product(ksiterable, repeat=3)]
 
     kstiterable = [6,6,8,8,10,10,32,32,64,64,96,96,128,128]
-    kstcombinations = [list(x) for x in itertools.combinations(iterable=kstiterable, r=3)]
+    kstcombinations = [list(x) for x in itertools.product(kstiterable, repeat=3)]
 
     def objective_cv(trial):
         # objective function enveloping the model objective function with cross-validation
@@ -51,7 +51,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
             ESPatience=4#trial.suggest_categorical("ESPatience",[2,4])
             alpha=trial.suggest_float("alpha",0.0,0.5)
-            gamma=trial.suggest_float("gamma",1.01,5.0)
+            gamma=2#trial.suggest_float("gamma",1.01,5.0)
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
             
 
@@ -95,7 +95,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             if model_name=="XCM":
                 arch=XCMPlus
                 param_grid = {
-                    'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
                     'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5)
                 }
                 
@@ -108,7 +108,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             if model_name=="ResNet":
                 arch=ResNetPlus
                 param_grid = {
-                    'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
                     'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', choices=kscombinations),
                 }
@@ -117,7 +117,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             if model_name=="InceptionTime":
                 arch=InceptionTimePlus
                 param_grid = {
-                    'nf': trial.suggest_categorical('nf', [32, 64, 96, 128]),
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
                     'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'conv_dropout': 0.2,#trial.suggest_float('conv_dropout', 0.1, 0.5),
                     'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
@@ -201,7 +201,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         scores = []
 
         # add batch_size as a hyperparameter
-        batch_size=32#trial.suggest_categorical('batch_size',[32,64,96])
+        batch_size=trial.suggest_categorical('batch_size',[32,64,96])
 
 
         # divide train data into folds
@@ -327,7 +327,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     
     print(study.trials_dataframe())
-    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_", savename, ".csv"])
+    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_finalhype_", savename, ".csv"])
     entry = pd.DataFrame(study.trials_dataframe())
     entry.to_csv(filepathout, index=False)
     print(study.best_params)
