@@ -25,9 +25,257 @@ import Data_load_neat as Data_load
 
 
 warnings.filterwarnings('ignore')
-
-
 def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds,savename,filepath,metrics):
+    ''' function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)''' 
+    if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
+        print("Input data contains NaN values.")
+
+    # for LSTM-FCN or MLSTM-FCN or TCN
+    # FIXME: Perhaps there is a better way to do this - i.e. select parameter values that are vectors but this is my workaround
+    if model_name=="MLSTMFCN" or model_name=="LSTMFCN":
+        iterable = [32,64,96,128,32,64,96,128,32,64,96,128]
+        combinations = [list(x) for x in itertools.product(iterable, repeat=3)]
+
+        ksiterable = [3,3,3,5,5,5,7,7,7]
+        kscombinations = [list(x) for x in itertools.product(ksiterable, repeat=3)]
+
+    elif model_name=="ResNet":
+        ksiterable = [3,3,3,5,5,5,7,7,7]
+        kscombinations = [list(x) for x in itertools.product(ksiterable, repeat=3)]
+
+    learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
+    ESPatience=2#4#trial.suggest_categorical("ESPatience",[2,4])
+    gamma=2#trial.suggest_float("gamma",1.01,5.0)
+    batch_size=32#trial.suggest_categorical('batch_size',[32,64,96])
+    randnum_train=1
+
+
+    def objective_cv(trial):
+        # objective function enveloping the model objective function with cross-validation
+
+        def objective(trial):
+
+
+            alpha=trial.suggest_float("alpha",0.0,0.5)
+            
+            weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
+            
+
+            # FIXME: There might be a better way to specify the different models
+            if model_name=="MLSTMFCN":
+                arch=MLSTM_FCNPlus
+                param_grid = {
+                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
+                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'cell_dropout': 0.2,#trial.suggest_float('cell_dropout', 0.1, 0.5),
+                    'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
+                }
+
+            elif model_name=="LSTMFCN":
+                arch=LSTM_FCNPlus
+                param_grid = {
+                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
+                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'cell_dropout': 0.2,#trial.suggest_float('cell_dropout', 0.1, 0.5),
+                    'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
+                }
+
+            elif model_name=="ResNet":
+                arch=ResNetPlus
+                param_grid = {
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'ks': trial.suggest_categorical('ks', choices=kscombinations),
+                }
+
+            elif model_name=="InceptionTime":
+                arch=InceptionTimePlus
+                param_grid = {
+                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'conv_dropout': 0.2,#trial.suggest_float('conv_dropout', 0.1, 0.5),
+                    'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
+                    #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
+                }
+
+            elif model_name=="PatchTST":
+                arch=PatchTST
+                param_grid = {
+                    'n_layers': trial.suggest_categorical('n_layers', [2,3,4]),
+                    #'n_heads': trial.suggest_categorical('n_heads', [6,8,10]),
+                    #'d_model': trial.suggest_categorical('d_model', [384,512,640]),
+                    #'d_ff': trial.suggest_categorical('d_ff', [1024,2048,4096]),
+                    'dropout': trial.suggest_float('dropout', 0.1, 0.5),
+                    'attn_dropout': trial.suggest_float('attn_dropout', 0.1, 0.5),
+                    'patch_len': trial.suggest_categorical('patch_len', [8,16,32]),
+                    #'stride': trial.suggest_categorical('stride', [6,8,10]),
+                    'kernel_size': trial.suggest_categorical('kernel_size', [16,25,36])
+                }
+
+            elif model_name=="LSTMAttention":
+                arch=LSTMAttention
+                param_grid = {
+                    'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
+                    'd_ff': trial.suggest_categorical('d_ff', [64,128,256]),
+                    'encoder_layers': trial.suggest_categorical('encoder_layers', [2,3,4]),
+                    'hidden_size': trial.suggest_categorical('hidden_size', [32,64,128]),
+                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'encoder_dropout': trial.suggest_float('encoder_dropout', 0.1, 0.5),
+                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
+                }
+
+
+            # fit the model to the train/test data
+            Data_load.random_seed(randnum_train)
+
+            # FIXME: check activation
+            if model_name=="InceptionTime" or model_name=="ResNet":
+                model = arch(dls.vars, dls.c,**param_grid, act=nn.LeakyReLU)
+            elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="LSTMAttention" or model_name=="MLSTMFCN" or model_name=="PatchTST":
+                model = arch(dls.vars, dls.c,dls.len,**param_grid)
+            else:
+                model = arch(dls.vars, dls.c,**param_grid)
+            model.to(device)
+            learner = Learner(
+                dls,
+                model,
+                metrics=metrics,
+                loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
+                #seed=randnum_train,
+                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]# ,ShowGraph()
+                )
+
+
+            #learner.save('stage0')
+            learner.fit_one_cycle(epochs,lr_max=learning_rate_init)#,cbs=[FastAIPruningCallback(learner, trial, "RocAucBinary")])
+            #learner.save('stage1')
+
+            return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+
+        scores = []
+
+        # add batch_size as a hyperparameter
+
+
+        # divide train data into folds
+        skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=randnum)
+        skf.get_n_splits(Xtrainvalid,Ytrainvalid)
+        scaler=StandardScaler()
+
+        # loop through each fold and fit hyperparameters
+        for train_idx, valid_idx in skf.split(Xtrainvalid,Ytrainvalid):
+            print("TRAIN:", train_idx, "VALID:",valid_idx)
+
+            # select train and validation data
+            Xtrain, Xvalid = Xtrainvalid[train_idx], Xtrainvalid[valid_idx]
+            Ytrain, Yvalid = Ytrainvalid[train_idx], Ytrainvalid[valid_idx]
+
+            # get new splits according to this data
+            #splits_kfold=get_predefined_splits([Xtrain,Xvalid])
+            #X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
+
+            X_combined, y_combined, stratified_splits = combine_split_data(
+                [Xtrain, Xvalid], 
+                [Ytrain, Yvalid]
+            )
+
+            print(f'mlkmodel line 238; Xvalid; shape={Xvalid.shape}; min mean = {Xvalid.mean((1,2)).min()}; max mean = {Xvalid.mean((1,2)).max()}')
+            
+            # standardise and one-hot the data
+            #X_scaled=Data_load.prep_data(X2,splits_kfold2)
+
+            # prepare the data to go in the model
+            tfms=[None,Categorize()]
+            dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
+
+            Data_load.random_seed(randnum)
+
+            # prepare this data for the model (define batches etc)
+            dls=TSDataLoaders.from_dsets(
+                    dsets.train,
+                    dsets.valid,
+                    bs=batch_size,
+                    num_workers=0,
+                    device=device#,
+                    #shuffle=False,
+                    # batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
+                    )
+
+
+            instance_scores=[]
+            
+            # find valid_loss for this fold and these hyperparameters
+            
+            #for randnum_train in range(0,3):
+            print("  Random seed: ",randnum_train)
+            trial_score_instance= objective(trial)
+            instance_scores.append(trial_score_instance)
+            trial_score=np.mean(instance_scores)
+            # randnum_train=1
+            # trial_score=objective(trial)
+            scores.append(trial_score)
+
+        return np.mean(scores)
+
+    
+    # set random seed
+    Data_load.random_seed(randnum)
+    #torch.set_num_threads(18)
+
+
+    study=optuna.create_study(
+        direction='maximize',
+        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
+        study_name=savename,
+        #sampler=optuna.samplers.GridSampler(search_space)#optsampler
+        sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        #sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
+        )
+    study.optimize(
+        objective_cv,
+        n_trials=num_optuna_trials,
+        show_progress_bar=True#,
+        #n_jobs=4
+        )
+
+    
+    print(study.trials_dataframe())
+    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_finalhype_lastrun_", savename, ".csv"])
+    entry = pd.DataFrame(study.trials_dataframe())
+    entry.to_csv(filepathout, index=False)
+    print(study.best_params)
+    print(study.best_value)
+    
+    pruned_trials= [t for t in study.trials if t.state ==optuna.trial.TrialState.PRUNED]
+    complete_trials=[t for t in study.trials if t.state==optuna.trial.TrialState.COMPLETE]
+    
+    print("Study statistics: ")
+    print("  Number of finished trials: ", len(study.trials))
+    print("  Number of pruned trials: ", len(pruned_trials))
+    print("  Number of complete trials: ", len(complete_trials))
+
+    print("Best trial: ")
+    trial=study.best_trial
+    print("  Value: ", trial.value)
+    print(" Params: ")
+    for key, value in trial.params.items():
+        print("   {}:{}".format(key,value))
+
+    print(optuna.importance.get_param_importances(study))
+
+    return trial
+
+
+
+
+def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name,device,folds,savename,filepath,metrics):
     ''' function to carry out hyperparameter optimisation and k-fold corss-validation (no description on other models as is the same)''' 
     if np.isnan(Xtrainvalid).any() or np.isnan(Ytrainvalid).any():
         print("Input data contains NaN values.")
@@ -51,7 +299,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
             ESPatience=4#trial.suggest_categorical("ESPatience",[2,4])
             alpha=trial.suggest_float("alpha",0.0,0.5)
-            gamma=2#trial.suggest_float("gamma",1.01,5.0)
+            gamma=trial.suggest_float("gamma",1.01,5.0)
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
             
 

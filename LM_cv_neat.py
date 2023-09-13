@@ -74,22 +74,26 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     #X_scaled=Data_load.prep_data(X, splits)
     #XStrainvalid=X_scaled[splits[0]]
     #XStest=X_scaled[splits[1]]
-
+    start1 = timeit.default_timer() 
     # flatten the data
     X_LRtrain, X_LRtest = LM_func(Xtrainvalid, Xtest)
+    stop1 = timeit.default_timer()
+    hype_time=stop1 - start1
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum).fit(X_LRtrain, Ytrainvalid)
     stop = timeit.default_timer()
-    runtime=stop - start
-
+    train_time=stop - start
+    start2 = timeit.default_timer() 
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
 
     # get output metrics for test data
     acc, prec, rec, fone, auc, brier, prc, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
-    return runtime, acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
+    stop2 = timeit.default_timer()
+    inf_time=stop2 - start2
+    return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
 def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     # function to fit and analyse the logistic regression model
@@ -103,17 +107,21 @@ def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
     #XStest=X_scaled[splits[1]]
 
     # flatten the data
+    start1 = timeit.default_timer()
     X_LRtrain, X_LRtest = LM_func(Xtrainvalid, Xtest)
+    
 
     poly = PolynomialFeatures(2, interaction_only=True)
     Xpoly = poly.fit_transform(X_LRtrain)
+    stop1 = timeit.default_timer()
+    hype_time=stop1 - start1
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()
     LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(Xpoly, Ytrainvalid)
     stop = timeit.default_timer()
-    runtime=stop - start
-
+    train_time=stop - start
+    start2 = timeit.default_timer() 
     Xpolytest = poly.transform(X_LRtest)
 
     # get model predictions on the test data
@@ -121,5 +129,7 @@ def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum=8):
 
     # get output metrics for test data
     acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 =metrics_bin(LRpred, Ytest)
-    return runtime, acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
+    stop2 = timeit.default_timer()
+    inf_time=stop2 - start2
+    return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
 
