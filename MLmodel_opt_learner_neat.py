@@ -22,6 +22,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from optuna.integration import FastAIPruningCallback
 from fastai.vision.all import *
 import Data_load_neat as Data_load
+import explr_inter
 
 
 warnings.filterwarnings('ignore')
@@ -47,7 +48,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     ESPatience=2#4#trial.suggest_categorical("ESPatience",[2,4])
     gamma=2#trial.suggest_float("gamma",1.01,5.0)
     batch_size=32#trial.suggest_categorical('batch_size',[32,64,96])
-    randnum_train=1
+    randnum_train=randnum
 
 
     def objective_cv(trial):
@@ -121,8 +122,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             elif model_name=="LSTMAttention":
                 arch=LSTMAttention
                 param_grid = {
-                    'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
-                    'd_ff': trial.suggest_categorical('d_ff', [64,128,256]),
+                    'n_heads': trial.suggest_categorical('n_heads', [8,12,16]),#'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
+                    'd_ff': trial.suggest_categorical('d_ff', [256,512,1024,2048,4096]),#256-4096#'d_ff': trial.suggest_categorical('d_ff', [64,128,256]),
                     'encoder_layers': trial.suggest_categorical('encoder_layers', [2,3,4]),
                     'hidden_size': trial.suggest_categorical('hidden_size', [32,64,128]),
                     'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
@@ -268,7 +269,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     for key, value in trial.params.items():
         print("   {}:{}".format(key,value))
 
-    print(optuna.importance.get_param_importances(study))
+    #print(optuna.importance.get_param_importances(study))
 
     return trial
 
@@ -706,7 +707,7 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
 
 
 
-def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename,metrics):
+def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename,metrics,filepath,metric_idx=4,imp=False):
     # define the metrics for model fitting output
     FLweights=[alpha,1-alpha]
     weights=torch.tensor(FLweights, dtype=torch.float).to(device)
@@ -775,7 +776,16 @@ def model_block_nohype(model_name,arch,X,Y,splits,epochs,randnum,lr_max,alpha,ga
     stop=timeit.default_timer()
     runtime=stop-start
 
-    return runtime, learn
+    start2 = timeit.default_timer()
+    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X_test,Y_test)
+    stop2 = timeit.default_timer()
+    inf_time=stop2 - start2
+
+    if imp=="True":
+        #learner.feature_importance(show_chart=False, key_metric_idx=4)
+        explr_inter.explain_func(f_model=learn,X_test=X_test,Y_test=Y_test,metric_idx=metric_idx,filepath=filepath,randnum=randnum,dls=dls,batch_size=batch_size,savename=savename)
+
+    return runtime, learn, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11, inf_time
 
 
 
