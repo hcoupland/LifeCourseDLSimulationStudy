@@ -73,6 +73,7 @@ def shap_func(dls,batch_size,learn,filepath,savename):
 
 
     for i in range(0,list(indices[:,0].shape)[0]):
+        print(i)
         shap_num=i
         fig,axes = plt.subplots(1,2)
         sns.heatmap(data=shap_values[0][shap_num,:,:], cmap='RdBu',vmin=-2.5,center=0,vmax=2.5,ax=axes[0])
@@ -80,30 +81,31 @@ def shap_func(dls,batch_size,learn,filepath,savename):
         axes[0].set_title(f'Top choice 1: class {indices[shap_num, 0]}')
         axes[1].set_title(f'Top choice 2: class {indices[shap_num, 1]}')
         fig.tight_layout()
-        plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_", savename,"_example_SHAP_plot",i,".png"]))
+        plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_", savename,"_example_SHAP_plot",str(int(i)),".png"]))
     return shap_values
 
 
 def perm_imp(metric_idx, learn,filepath,randnum):
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path=filepath,random_state=randnum)
+    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum)
 
-    step_imp=learn.step_importance (key_metric_idx=metric_idx,save_df_path=filepath,random_state=randnum)
+    step_imp=learn.step_importance (key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum)
 
     return
 
 def perm_imp_prevdiag(metric_idx, learn,filepath,randnum, X_test, Y_test):
     RTI_var = 8
     X_diag=X_test[np.unique(np.where(X_test[:,RTI_var,:]==1)[0]),:,:]
+    print(X_diag.shape)
 
     X_nodiag=X_test[np.all(X_test[:,RTI_var,:]==0,axis=1),:,:]
-
+    print(X_nodiag.shape)
     Y_diag=Y_test[np.unique(np.where(X_test[:,RTI_var,:]==1)[0])]
 
     Y_nodiag=Y_test[np.all(X_test[:,RTI_var,:]==0,axis=1)]
 
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path=filepath,random_state=randnum, X=X_diag,y=Y_diag)
+    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum, X=X_diag,y=Y_diag)
 
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path=filepath,random_state=randnum, X=X_nodiag,y=Y_nodiag)
+    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum, X=X_nodiag,y=Y_nodiag)
 
     return
 
@@ -128,6 +130,7 @@ def count_test(f_model,X_test,Y_test):
     ## change the scenario
     X_count[:,8,0:4] =0
     y_saved = count_results(f_model,X_test,Y_test) - count_results(f_model,X_count,Y_test)
+    print(f'people saved = {y_saved}')
     return y_saved
 
 ## NOw set the first 5 years of life so that there is zero poverty

@@ -13,6 +13,7 @@ import torch.nn as nn
 import optuna
 from optuna.samplers import TPESampler
 import sklearn.metrics as skm
+import pandas as pd
 
 
 from sklearn.model_selection import StratifiedKFold
@@ -21,8 +22,13 @@ from torch.utils.data import WeightedRandomSampler
 from sklearn.utils.class_weight import compute_class_weight
 from optuna.integration import FastAIPruningCallback
 from fastai.vision.all import *
+from sklearn.calibration import calibration_curve
+import matplotlib.pyplot as plt
 import Data_load_neat as Data_load
 import explr_inter
+
+
+
 
 
 warnings.filterwarnings('ignore')
@@ -40,13 +46,9 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         ksiterable = [3,3,3,5,5,5,7,7,7]
         kscombinations = [list(x) for x in itertools.product(ksiterable, repeat=3)]
 
-    elif model_name=="ResNet":
-        ksiterable = [3,3,3,5,5,5,7,7,7]
-        kscombinations = [list(x) for x in itertools.product(ksiterable, repeat=3)]
-
     learning_rate_init=1e-3#trial.suggest_float("learning_rate_init",1e-5,1e-3)
     ESPatience=2#4#trial.suggest_categorical("ESPatience",[2,4])
-    gamma=2#trial.suggest_float("gamma",1.01,5.0)
+    
     batch_size=32#trial.suggest_categorical('batch_size',[32,64,96])
     randnum_train=randnum
 
@@ -57,7 +59,8 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
         def objective(trial):
 
 
-            alpha=trial.suggest_float("alpha",0.0,0.5)
+            alpha=trial.suggest_float("alpha",0.0,1.0)
+            gamma=trial.suggest_float("gamma",1.01,5.0)
             
             weights=torch.tensor([alpha,1-alpha],dtype=torch.float).to(device)
             
@@ -75,24 +78,13 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
-            elif model_name=="LSTMFCN":
-                arch=LSTM_FCNPlus
-                param_grid = {
-                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
-                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
-                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
-                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
-                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
-                    'cell_dropout': 0.2,#trial.suggest_float('cell_dropout', 0.1, 0.5),
-                    'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
-                }
 
             elif model_name=="ResNet":
                 arch=ResNetPlus
                 param_grid = {
-                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
+                    'nf': 64,#trial.suggest_categorical('nf', [32, 64, 96]),
                     'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
-                    'ks': trial.suggest_categorical('ks', choices=kscombinations),
+                    'ks': [7,5,3]#trial.suggest_categorical('ks', choices=kscombinations),
                 }
 
             elif model_name=="InceptionTime":
@@ -105,19 +97,6 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
 
-            elif model_name=="PatchTST":
-                arch=PatchTST
-                param_grid = {
-                    'n_layers': trial.suggest_categorical('n_layers', [2,3,4]),
-                    #'n_heads': trial.suggest_categorical('n_heads', [6,8,10]),
-                    #'d_model': trial.suggest_categorical('d_model', [384,512,640]),
-                    #'d_ff': trial.suggest_categorical('d_ff', [1024,2048,4096]),
-                    'dropout': trial.suggest_float('dropout', 0.1, 0.5),
-                    'attn_dropout': trial.suggest_float('attn_dropout', 0.1, 0.5),
-                    'patch_len': trial.suggest_categorical('patch_len', [8,16,32]),
-                    #'stride': trial.suggest_categorical('stride', [6,8,10]),
-                    'kernel_size': trial.suggest_categorical('kernel_size', [16,25,36])
-                }
 
             elif model_name=="LSTMAttention":
                 arch=LSTMAttention
@@ -150,7 +129,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
                 #seed=randnum_train,
-                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]# ,ShowGraph()
+                cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]#,FastAIPruningCallback(trial, monitor="error_rate")]# ,ShowGraph()  #FastAIPruningCallback(trial, monitor="error_rate")
                 )
 
 
@@ -158,7 +137,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)#,cbs=[FastAIPruningCallback(learner, trial, "RocAucBinary")])
             #learner.save('stage1')
 
-            return learner.recorder.values[-1][4] ## this returns the auc (5 is brier score)
+            return learner.recorder.values[-1][6]#learner.recorder.values[-1][3], learner.recorder.values[-1][4], learner.recorder.values[-1][5], learner.recorder.values[-1][6] ## this returns the auc (5 is brier score and should be minimised)
 
         scores = []
 
@@ -230,13 +209,23 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
     Data_load.random_seed(randnum)
     #torch.set_num_threads(18)
 
+    search_space = {
+        #'alpha': [0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5,0.55,0.6,0.65,0.7,0.75,0.8,0.85,0.9,0.95],
+        'alpha': [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9],
+        'gamma': [1.1,1.5,2,2.5,3,3.5,4,4.5],
+    }
+
+    ## grid
+    num_optuna_trials=9*8#19*8
+
 
     study=optuna.create_study(
+        #directions=['maximize', 'maximize', 'minimize', 'maximize'],
         direction='maximize',
-        pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
+        #pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
         study_name=savename,
-        #sampler=optuna.samplers.GridSampler(search_space)#optsampler
-        sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        sampler=optuna.samplers.GridSampler(search_space)#optsampler
+        #sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
         #sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
         )
     study.optimize(
@@ -248,7 +237,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     
     print(study.trials_dataframe())
-    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_finalhype_lastrun_", savename, ".csv"])
+    filepathout="".join([filepath,"Simulations/model_results/optunaoutputCVL_alpha_finalhype_lastrun_TPE_", savename, ".csv"])
     entry = pd.DataFrame(study.trials_dataframe())
     entry.to_csv(filepathout, index=False)
     print(study.best_params)
@@ -564,8 +553,8 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
         pruner=optuna.pruners.MedianPruner(n_startup_trials=5, n_warmup_steps=30, interval_steps=10),
         study_name=savename,
         #sampler=optuna.samplers.GridSampler(search_space)#optsampler
-        #sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
-        sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
+        sampler=optuna.samplers.TPESampler(seed=randnum)#optsampler
+        #sampler=optuna.samplers.RandomSampler(seed=randnum)#optsampler
         )
     study.optimize(
         objective_cv,
@@ -707,12 +696,11 @@ def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,ga
 
 
 
-def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,lr_max,alpha,gamma,batch_size,device,savename,metrics,filepath,metric_idx=4,imp=False):
+def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,ESPatience,lr_max,alpha,gamma,batch_size,device,savename,metrics,filepath,metric_idx=4,imp=False):
     # define the metrics for model fitting output
     FLweights=[alpha,1-alpha]
     weights=torch.tensor(FLweights, dtype=torch.float).to(device)
 
-    ESPatience=2
 
     # prep the data for the model
     tfms=[None,[Categorize()]]
@@ -777,7 +765,7 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,l
     runtime=stop-start
 
     start2 = timeit.default_timer()
-    acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11=test_results(learn,X_test,Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11=test_results(learn,X_test,Y_test,filepath,savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
 
@@ -785,11 +773,11 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,l
         #learner.feature_importance(show_chart=False, key_metric_idx=4)
         explr_inter.explain_func(f_model=learn,X_test=X_test,Y_test=Y_test,metric_idx=metric_idx,filepath=filepath,randnum=randnum,dls=dls,batch_size=batch_size,savename=savename)
 
-    return runtime, learn, acc, prec, rec, fone, auc, prc, LR00, LR01, LR10, LR11, inf_time
+    return runtime, learn, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time
 
 
 
-def test_results(f_model,X_test,Y_test):
+def test_results(f_model,X_test,Y_test,filepath,savename):
 
     valid_dl=f_model.dls.valid
 
@@ -817,12 +805,14 @@ def test_results(f_model,X_test,Y_test):
     fone=skm.f1_score(test_targets,test_preds)
     auc=skm.roc_auc_score(test_targets,test_preds)
     prc=skm.average_precision_score(test_targets,test_preds)
+    brier=skm.brier_score_loss(test_targets,test_probas[:,1])
     print(f"accuracy: {acc:.4f}")
     print(f"precision: {prec:.4f}")
     print(f"recall: {rec:.4f}")
     print(f"f1: {fone:.4f}")
     print(f"auc: {auc:.4f}")
     print(f"prc: {prc:.4f}")
+    print(f"brier: {brier:.4f}")
 
     # get the confusion matrix values
     LR00=np.count_nonzero(np.bitwise_and(Y_test==0,test_preds.numpy()==0))
@@ -834,4 +824,35 @@ def test_results(f_model,X_test,Y_test):
     print("{:<40} {:.6f}".format("Y 1, predicted 0 (false negatives)",LR10))
     print("{:<40} {:.6f}".format("Y 1, predicted 1 (true positives)",LR11))
 
-    return acc, prec, rec, fone, auc, prc,  LR00, LR01, LR10, LR11
+    prob_true, prob_pred = calibration_curve(test_targets,test_probas[:,1], n_bins=10)
+
+    #Plot the Probabilities Calibrated curve
+    plt.plot(prob_pred,
+            prob_true,
+            marker='o',
+            linewidth=1,
+            label='Model')
+    
+    #Plot the Perfectly Calibrated by Adding the 45-degree line to the plot
+    plt.plot([0, 1],
+            [0, 1],
+            linestyle='--',
+            label='Perfectly Calibrated')
+    
+    
+    # Set the title and axis labels for the plot
+    plt.title('Probability Calibration Curve')
+    plt.xlabel('Predicted Probability')
+    plt.ylabel('True Probability')
+    
+    # Add a legend to the plot
+    plt.legend(loc='best')
+    
+    # Show the plot
+    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration.png"]))
+    df_pp = pd.DataFrame(prob_pred)
+    df_pt = pd.DataFrame(prob_true)
+    df_pp.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_pred.csv"]),index=False)
+    df_pt.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_true.csv"]),index=False)
+
+    return acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11

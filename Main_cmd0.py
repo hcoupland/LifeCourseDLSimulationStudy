@@ -29,16 +29,17 @@ from tsai.tslearner import TSClassifier
 name = sys.argv[1]
 model_name=sys.argv[2]
 randnum_split=3#int(sys.argv[3])
+randnum_train=int(sys.argv[3])
 epochs=10#int(sys.argv[4])
 num_optuna_trials =100# int(sys.argv[5])
-hype= "True"#sys.argv[3]
-imp = "False"#sys.argv[4]
+hype= "False"#sys.argv[3]
+imp = "True"#sys.argv[4]
 device = 0#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
 folds=3
 
-def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filepath, device,subset=-1,folds=5):
+def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype,randnum_train, imp,filepath, device,subset=-1,folds=5):
     print(name)
     ## Function to load in data
     X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath,subset=subset)
@@ -97,7 +98,8 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
         Y_trainvalid=Y_trainvalid, 
         X_test=X_test, 
         Y_test=Y_test, 
-        randnum_split=randnum_split,  
+        randnum_split=randnum_split, 
+        randnum_train=randnum_train, 
         epochs=epochs,
         num_optuna_trials = num_optuna_trials, 
         hype=hype,
@@ -111,4 +113,4 @@ def run(name, model_name, randnum_split,epochs,num_optuna_trials,hype, imp,filep
     return output
 
 if __name__ == '__main__':
-    run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)
+    run(name=name, model_name=model_name, randnum_split=randnum_split,epochs=epochs,randnum_train=randnum_train,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)

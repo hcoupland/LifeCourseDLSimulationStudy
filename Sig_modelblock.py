@@ -55,7 +55,7 @@ def Sig_func_original(X_trainvalid, X_test, K):
 
 
 
-def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
+def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -75,9 +75,10 @@ def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randn
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -134,7 +135,7 @@ def Sig_func_basepoint(X_trainvalid, X_test, K):
     return X_LRtrainvalid, X_LRtest
 
 
-def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
+def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -154,9 +155,10 @@ def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, rand
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -220,7 +222,7 @@ def Sig_func_basepoint_LL(X_trainvalid, X_test, K):
     return X_LRtrainvalid, X_LRtest
 
 
-def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
+def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -240,9 +242,10 @@ def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -302,7 +305,7 @@ def Sig_func_LL(X_trainvalid, X_test, K):
 
 
 
-def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
+def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -322,9 +325,10 @@ def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum=8):
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -385,7 +389,7 @@ def Sig_func_original_int(X_trainvalid, X_test, K, int_factor):
 
 
 
-def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor):
+def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -405,9 +409,10 @@ def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -476,7 +481,7 @@ def Sig_func_basepoint_int(X_trainvalid, X_test, K, int_factor):
 
 
 
-def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor):
+def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -496,9 +501,10 @@ def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, 
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -571,7 +577,7 @@ def Sig_func_basepoint_LL_int(X_trainvalid, X_test, K, int_factor):
     return X_LRtrainvalid, X_LRtest
 
 
-def SIGmodel_block_basepoint_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor):
+def SIGmodel_block_basepoint_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -591,9 +597,10 @@ def SIGmodel_block_basepoint_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, 
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
@@ -662,7 +669,7 @@ def Sig_func_LL_int(X_trainvalid, X_test, K,int_factor):
     return X_LRtrainvalid, X_LRtest
 
 
-def SIGmodel_block_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor):
+def SIGmodel_block_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum,int_factor, filepath, savename):
     # function to fit and analyse the logistic regression model
     
     # random seed
@@ -682,9 +689,10 @@ def SIGmodel_block_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum
     start2 = timeit.default_timer()
     # get model predictions on the test data
     LRpred = LRmodel.predict(X_LRtest)
+    LRprob = LRmodel.predict_proba(X_LRtest)[:,1]
 
     # get output metrics for test data
-    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test)
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11= LM_cv_neat.metrics_bin(LRpred, Y_test, LRprob, filepath, savename)
     stop2 = timeit.default_timer()
     inf_time=stop2 - start2
     return train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11
