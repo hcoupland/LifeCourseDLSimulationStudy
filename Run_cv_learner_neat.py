@@ -19,15 +19,15 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"TPEsamp_finalhype_lastrun_"])
-    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, ".csv"])
+    savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"briersamp_finalhype_lastrun_"])
+    filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_sigK4brier_test_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
     randnum=randnum_train
     print(model_name)
     
     # List of non-model parameters
     #rem_list=["alpha","gamma","batch_size"]
-    rem_list=["alpha"]
+    rem_list=["alpha","gamma"]
  
     # the metrics outputted when fitting the model
     metrics=[accuracy,F1Score(),RocAucBinary(),BrierScore(),APScoreBinary()]#,FBeta(beta=)]
@@ -349,6 +349,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
                     arch=arch,
                     X=X_trainvalid,
                     Y=Y_trainvalid,
+                    X_test=X_test,
+                    Y_test=Y_test,
                     splits=splits_9010,
                     randnum=randnum,
                     epochs=epochs,
@@ -360,7 +362,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
                     batch_size=batch_size,
                     device=device,
                     metrics=metrics,
-                    savename=savename)
+                    savename=savename,
+                    filepath=filepath,
+                    imp=imp)
                 start2 = timeit.default_timer()
                 acc, prec, rec, fone, auc, prc, brier,  LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
                 stop2 = timeit.default_timer()

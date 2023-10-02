@@ -594,10 +594,7 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
 
     return trial
 
-
-
-
-def model_block(model_name,arch,X,Y,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, metrics):
+def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, metrics,filepath,imp):
     # function to fit the model on the train/test data with pre-trained hyperparameters
 
     # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])

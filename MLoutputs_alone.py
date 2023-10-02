@@ -100,61 +100,13 @@ def run(name, model_name, randnum_split,randnum_stoc,epochs,num_optuna_trials,hy
             print(f'{arr_name}: mean = {np.mean(arr):.3f}; std = {np.std(arr):.3f}')
 
 
-    # assert False
-    # print(f' mean of Xtraivalid = {np.mean(X_trainvalid)}')
-    # print(f' mean of Xtest = {np.mean(X_test)}')
-    # print(f' std of Xtraivalid = {np.std(X_trainvalid)}')
-    # print(f' std of Xtest = {np.std(X_test)}')
-    # print(f' mean of Xtraivalid scaled = {np.mean(X_trainvalid_s)}')
-    # print(f' mean of Xtest scaled = {np.mean(X_test_s)}')
-    # print(f' std of Xtraivalid scaled = {np.std(X_trainvalid_s)}')
-    # print(f' std of Xtest scaled = {np.std(X_test_s)}')
-
-    # print(f' mean of Xtraivalid = {np.mean(Y_trainvalid)}')
-    # print(f' mean of Xtraivalid = {np.mean(Y_test)}')
-    # print(f' mean of Xtraivalid = {np.std(Y_trainvalid)}')
-    # print(f' mean of Xtraivalid = {np.std(Y_test)}')
-
     print('Data generated')
 
-    #pycaret_analysis.pycaret_func(Xtrainvalid, Ytrainvalid, Xtest, Ytest, splits, X, Y)
-
     name="".join([ name,"_stoc",str(int(stoc*100))])
-    ## Runs hyperparameter and fits those models required
-    #output=Run_cv_learner.All_run(name=name,model_name=model_name,X_trainvalid=X_trainvalid_s, Y_trainvalid=Y_trainvalid, X_test=X_test_s, Y_test=Y_test, randnum=randnum2,  epochs=epochs,num_optuna_trials = num_optuna_trials, hype=hype)
-    output=Run_cv_learner.All_run(
-        name=name,
-        model_name=model_name,
-        X_trainvalid=X_trainvalid, 
-        Y_trainvalid=Y_trainvalid_stoc, 
-        randnum_train=randnum_train,
-        X_test=X_test, 
-        Y_test=Y_test, 
-        randnum_split=randnum_split,  
-        epochs=epochs,
-        num_optuna_trials = num_optuna_trials, 
-        hype=hype,
-        imp=imp,
-        filepath=filepath,
-        device=device,
-        folds=folds
-        )
 
-    # FIXME: I'm confused what I am meant to return here
-    return output
-
-if __name__ == '__main__':
-    run(name=name, model_name=model_name,randnum_stoc=randnum_stoc,stoc=stoc, randnum_split=randnum_split,epochs=epochs,randnum_train=randnum_train,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)
-
-
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_train, filepath,device,randnum_split=8, epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
-    # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
-
-    # Giving the filepath for the output
     savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"Brier_now"])
     filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, ".csv"])
-    #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
-    randnum=randnum_train
+
     print(model_name)
     
     # the metrics outputted when fitting the model
@@ -219,14 +171,10 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
                     'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
-    ## Set seed
-    #Data_load.random_seed(randnum_split)
-    #torch.set_num_threads(18)
 
-    # FIXME: Here I Split out 10 percent of the trainvalid set to use as a final validation set - not sure if there is a better way to do this - potentially I should do it at the start?
     ## split out the test set
     splits_9010 = get_splits(
-            Y_trainvalid,
+            Y_trainvalid_stoc,
             valid_size=0.1,
             stratify=True,
             shuffle=True,
@@ -235,24 +183,24 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             random_state=randnum_split
             )
     Xtrainvalid90=X_trainvalid[splits_9010[0]]
-    Ytrainvalid90=Y_trainvalid[splits_9010[0]]
+    Ytrainvalid90=Y_trainvalid_stoc[splits_9010[0]]
     Xtrainvalid10=X_trainvalid[splits_9010[1]]
-    Ytrainvalid10=Y_trainvalid[splits_9010[1]]
+    Ytrainvalid10=Y_trainvalid_stoc[splits_9010[1]]
 
-    print(Counter(Y_trainvalid))
+    print(Counter(Y_trainvalid_stoc))
     print(Counter(Ytrainvalid90))
     print(Counter(Ytrainvalid10))
 
-
-
-            # Fitting the model on train/test with pre-selected hyperparameters
+    # Fitting the model on train/test with pre-selected hyperparameters
     train_time, learner = MLmodel_opt_learner.model_block(
         model_name=model_name,
         arch=arch,
         X=X_trainvalid,
-        Y=Y_trainvalid,
+        Y=Y_trainvalid_stoc,
+        X_test=X_test,  ##
+        Y_test=Y_test, ##
         splits=splits_9010,
-        randnum=randnum,
+        randnum=randnum_train,
         epochs=epochs,
         params=params,
         ESPatience=ESPatience,
@@ -262,7 +210,9 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
         batch_size=batch_size,
         device=device,
         metrics=metrics,
-        savename=savename)
+        savename=savename,
+        filepath=filepath,
+        imp=imp)
 
 
 
@@ -273,7 +223,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
     acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
 
     # Formatting and saving the output
-    outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, batch_size,alpha,gamma]
+    outputs=[name, model_name, randnum_train, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, batch_size,alpha,gamma]
     outputs.extend(list(params.values()))
 
     entry = pd.DataFrame([outputs], columns=colnames)
@@ -282,10 +232,56 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
 
     output.to_csv(filepathout, index=False)
     print(output)
-
-
-
-
-    #sys.stdout.close()
     print(filepathout)
-    return output
+
+    return
+
+if __name__ == '__main__':
+    run(name=name, model_name=model_name,randnum_stoc=randnum_stoc,stoc=stoc, randnum_split=randnum_split,epochs=epochs,randnum_train=randnum_train,num_optuna_trials=num_optuna_trials,hype=hype, imp=imp,filepath=filepath,device=device,folds=folds)
+
+
+            if imp=="True":
+                # Fitting the model on train/test with pre-selected hyperparameters
+                train_time, learner, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time = MLmodel_opt_learner.model_block_nohype(  ##
+                    model_name=model_name,
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    X_test=X_test,  ##
+                    Y_test=Y_test, ##
+                    splits=splits_9010,
+                    randnum=randnum_train,
+                    epochs=epochs,
+                    ESPatience=ESPatience,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    device=device,
+                    metrics=metrics,
+                    savename=savename,
+                    filepath=filepath, ##
+                    imp=imp)           ##
+            else:
+                # Fitting the model on train/test with pre-selected hyperparameters
+                train_time, learner = MLmodel_opt_learner.model_block(   ###
+                    model_name=model_name,
+                    arch=arch,
+                    X=X_trainvalid,
+                    Y=Y_trainvalid,
+                    splits=splits_9010,
+                    randnum=randnum_train,
+                    epochs=epochs,
+                    params=params, ##
+                    ESPatience=ESPatience,
+                    lr_max=lr_max,
+                    alpha=alpha,
+                    gamma=gamma,
+                    batch_size=batch_size,
+                    device=device,
+                    metrics=metrics,
+                    savename=savename)
+                start2 = timeit.default_timer()
+                acc, prec, rec, fone, auc, prc, brier,  LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
+                stop2 = timeit.default_timer()
+                inf_time=stop2 - start2

@@ -7,6 +7,8 @@ import torch
 import seaborn as sns
 from tsai import *
 import matplotlib.pyplot as plt
+import pandas as pd
+
 import copy
 ### explainability
 ## this is the fitted model
@@ -69,7 +71,7 @@ def shap_func(dls,batch_size,learn,filepath,savename):
     sns.heatmap(data=LR10_shap.mean(0), cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[1,0])
     sns.heatmap(data=LR11_shap.mean(0), cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[1,1])
     fig.tight_layout()
-    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_", savename,"_Averaged_SHAP_plot.png"]))
+    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename,"_Averaged_SHAP_plot.png"]))
 
 
     for i in range(0,list(indices[:,0].shape)[0]):
@@ -82,6 +84,9 @@ def shap_func(dls,batch_size,learn,filepath,savename):
         axes[1].set_title(f'Top choice 2: class {indices[shap_num, 1]}')
         fig.tight_layout()
         plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_", savename,"_example_SHAP_plot",str(int(i)),".png"]))
+
+    df_pp = pd.DataFrame(shap_values)
+    df_pp.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_shapvalues.csv"]),index=False)
     return shap_values
 
 
