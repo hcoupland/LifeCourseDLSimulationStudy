@@ -69,10 +69,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             if model_name=="MLSTMFCN":
                 arch=MLSTM_FCNPlus
                 param_grid = {
-                    'kss': trial.suggest_categorical('kss', choices=kscombinations),
-                    'conv_layers': trial.suggest_categorical('conv_layers', choices=combinations),
-                    'hidden_size': trial.suggest_categorical('hidden_size', [60,80,100,120]),
-                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'kss': [7,5,3],#trial.suggest_categorical('kss', choices=kscombinations),
+                    'conv_layers': [128,256,128],#trial.suggest_categorical('conv_layers', choices=combinations),
+                    'hidden_size': 100,#trial.suggest_categorical('hidden_size', [60,80,100,120]),
+                    'rnn_layers': 1,#trial.suggest_categorical('rnn_layers', [1,2,3]),
                     'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'cell_dropout': 0.2,#trial.suggest_float('cell_dropout', 0.1, 0.5),
                     'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
@@ -90,10 +90,10 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             elif model_name=="InceptionTime":
                 arch=InceptionTimePlus
                 param_grid = {
-                    'nf': trial.suggest_categorical('nf', [32, 64, 96]),
+                    'nf': 32,#trial.suggest_categorical('nf', [32, 64, 96]),
                     'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
                     'conv_dropout': 0.2,#trial.suggest_float('conv_dropout', 0.1, 0.5),
-                    'ks': trial.suggest_categorical('ks', [20, 40, 60])#,
+                    'ks': 40,#trial.suggest_categorical('ks', [20, 40, 60])#,
                     #'dilation': trial.suggest_categorical('dilation', [1, 2, 3])
                 }
 
@@ -101,14 +101,14 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             elif model_name=="LSTMAttention":
                 arch=LSTMAttention
                 param_grid = {
-                    'n_heads': trial.suggest_categorical('n_heads', [8,12,16]),#'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
-                    'd_ff': trial.suggest_categorical('d_ff', [256,512,1024,2048,4096]),#256-4096#'d_ff': trial.suggest_categorical('d_ff', [64,128,256]),
-                    'encoder_layers': trial.suggest_categorical('encoder_layers', [2,3,4]),
-                    'hidden_size': trial.suggest_categorical('hidden_size', [32,64,128]),
-                    'rnn_layers': trial.suggest_categorical('rnn_layers', [1,2,3]),
-                    'fc_dropout': trial.suggest_float('fc_dropout', 0.1, 0.5),
-                    'encoder_dropout': trial.suggest_float('encoder_dropout', 0.1, 0.5),
-                    'rnn_dropout': trial.suggest_float('rnn_dropout', 0.1, 0.5),
+                    'n_heads': 16,#trial.suggest_categorical('n_heads', [8,12,16]),#'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
+                    'd_ff': 256,#trial.suggest_categorical('d_ff', [256,512,1024,2048,4096]),#256-4096#'d_ff': trial.suggest_categorical('d_ff', [64,128,256]),
+                    'encoder_layers': 3,#trial.suggest_categorical('encoder_layers', [2,3,4,8]),
+                    'hidden_size': 128,#trial.suggest_categorical('hidden_size', [32,64,128]),
+                    'rnn_layers': 1,#trial.suggest_categorical('rnn_layers', [1,2,3]),
+                    'fc_dropout': 0.2,#trial.suggest_float('fc_dropout', 0.1, 0.5),
+                    'encoder_dropout': 0.2,#trial.suggest_float('encoder_dropout', 0.1, 0.5),
+                    'rnn_dropout': 0.2,#trial.suggest_float('rnn_dropout', 0.1, 0.5),
                 }
 
 
@@ -123,12 +123,12 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             else:
                 model = arch(dls.vars, dls.c,**param_grid)
             model.to(device)
-            learner = Learner(
+            learner = ts_learner(
                 dls,
                 model,
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
-                #seed=randnum_train,
+                seed=randnum_train,
                 cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]#,FastAIPruningCallback(trial, monitor="error_rate")]# ,ShowGraph()  #FastAIPruningCallback(trial, monitor="error_rate")
                 )
 
@@ -137,7 +137,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             learner.fit_one_cycle(epochs,lr_max=learning_rate_init)#,cbs=[FastAIPruningCallback(learner, trial, "RocAucBinary")])
             #learner.save('stage1')
 
-            return learner.recorder.values[-1][6]#learner.recorder.values[-1][3], learner.recorder.values[-1][4], learner.recorder.values[-1][5], learner.recorder.values[-1][6] ## this returns the auc (5 is brier score and should be minimised)
+            return learner.recorder.values[-1][5]#learner.recorder.values[-1][3], learner.recorder.values[-1][4], learner.recorder.values[-1][5], learner.recorder.values[-1][6] ## this returns the auc (5 is brier score and should be minimised)
 
         scores = []
 
@@ -195,11 +195,11 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             
             #for randnum_train in range(0,3):
             print("  Random seed: ",randnum_train)
-            trial_score_instance= objective(trial)
-            instance_scores.append(trial_score_instance)
-            trial_score=np.mean(instance_scores)
+            #trial_score_instance= objective(trial)
+            #instance_scores.append(trial_score_instance)
+            #trial_score=np.mean(instance_scores)
             # randnum_train=1
-            # trial_score=objective(trial)
+            trial_score=objective(trial)
             scores.append(trial_score)
 
         return np.mean(scores)
@@ -401,12 +401,12 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
             else:
                 model = arch(dls.vars, dls.c,**param_grid)
             model.to(device)
-            learner = Learner(
+            learner = ts_learner(
                 dls,
                 model,
                 metrics=metrics,
                 loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
-                #seed=randnum_train,
+                seed=randnum_train,
                 cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]# ,ShowGraph()
                 )
 
@@ -594,6 +594,7 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
 
     return trial
 
+
 def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, metrics,filepath,imp):
     # function to fit the model on the train/test data with pre-trained hyperparameters
 
@@ -610,7 +611,7 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
     tfms=[None,Categorize()]
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
 
-    # Data_load.random_seed(randnum,True)
+    #Data_load.random_seed(randnum,True)
 
     # define batches
     dls=TSDataLoaders.from_dsets(
@@ -643,18 +644,19 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
 
     if model_name=="InceptionTime" or model_name=="ResNet":
         model = arch(dls.vars, dls.c,**params, act=nn.LeakyReLU)
-    elif model_name=="XCM" or model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="LSTMAttention" or model_name=="PatchTST":
+    elif model_name=="LSTMFCN" or model_name=="MLSTMFCN" or model_name=="LSTMAttention":
         model = arch(dls.vars, dls.c,dls.len,**params)
     else:
         model = arch(dls.vars, dls.c,**params)
+ 
 
     model.to(device)
-    learn = Learner(
+    learn = ts_learner(#Learner(
         dls, 
-        model, 
+        arch=model, 
         metrics=metrics,
         loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
-        #seed=randnum,
+        seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
     learn.save("".join([savename, '_finalmodel_stage0']))
@@ -667,27 +669,18 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
     stop=timeit.default_timer()
     runtime=stop-start
 
+    start2 = timeit.default_timer()
+    acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11=test_results(learn,X_test,Y_test,filepath,savename)
+    stop2 = timeit.default_timer()
+    inf_time=stop2 - start2
 
-    # #weights=compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]])
-    # #weights=torch.tensor(weights, dtype=torch.float)
 
-    # learner = TSClassifier(
-    #     X_combined,
-    #     y_combined,
-    #     bs=study.best_params['batch_size'],
-    #     splits=stratified_splits,
-    #     arch=InceptionTimePlus(c_in=X_combined.shape[1], c_out=2),
-    #     arch_config={k: v for (k, v) in study.best_params.items() if k in param_list},
-    #     metrics=metrics,
-    #     loss_func=FocalLossFlat(gamma=gamma, weight=weights), #BCEWithLogitsLossFlat(), # FocalLossFlat(gamma=gamma, weight=weights)
-    #     verbose=True,
-    #     cbs=[EarlyStoppingCallback(patience=study.best_params['patience']), ReduceLROnPlateau()],
-    #     device=device
-    # )
 
-    # learner.fit_one_cycle(1, 1e-3)
-
-    return runtime, learn
+    if imp=="True":
+        #learner.feature_importance(show_chart=False, key_metric_idx=4)
+        explr_inter.explain_func(f_model=learn,X_test=X_test,Y_test=Y_test,filepath=filepath,randnum=randnum,dls=dls,batch_size=batch_size,savename=savename)
+    
+    return runtime, learn, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time
 
 
 
@@ -721,7 +714,7 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,E
 
     for i in range(10):
         x,y = dls.one_batch()
-        print(sum(y)/len(y))
+        print(sum(y)/len(y)),
 
     #dls=dsets.weighted_dataloaders(wgts, bs=4, num_workers=0)
     
@@ -742,12 +735,12 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,E
 
     model.to(device)
 
-    learn = Learner(
+    learn = ts_learner(
         dls, 
         model, 
         metrics=metrics,
         loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),
-        #seed=randnum,
+        seed=randnum,
         cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
         )
 
@@ -768,7 +761,7 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,E
 
     if imp=="True":
         #learner.feature_importance(show_chart=False, key_metric_idx=4)
-        explr_inter.explain_func(f_model=learn,X_test=X_test,Y_test=Y_test,metric_idx=metric_idx,filepath=filepath,randnum=randnum,dls=dls,batch_size=batch_size,savename=savename)
+        explr_inter.explain_func(f_model=learn,X_test=X_test,Y_test=Y_test,filepath=filepath,randnum=randnum,dls=dls,batch_size=batch_size,savename=savename)
 
     return runtime, learn, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time
 
@@ -846,10 +839,11 @@ def test_results(f_model,X_test,Y_test,filepath,savename):
     plt.legend(loc='best')
     
     # Show the plot
-    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration.png"]))
+    plt.savefig("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration.png"]))
+    plt.clf()
     df_pp = pd.DataFrame(prob_pred)
     df_pt = pd.DataFrame(prob_true)
-    df_pp.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_pred.csv"]),index=False)
-    df_pt.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_true.csv"]),index=False)
+    df_pp.to_csv("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_pred.csv"]),index=False)
+    df_pt.to_csv("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_true.csv"]),index=False)
 
     return acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11

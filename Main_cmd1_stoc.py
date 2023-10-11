@@ -2,24 +2,9 @@ import Data_load_neat as Data_load
 import Run_cv_learner_neat as Run_cv_learner
 
 import sys
-import torch
-import importlib
-import fastai
-import tsai
-importlib.reload(fastai)
-importlib.reload(tsai)
-from collections import Counter
+
 import numpy as np
-import torch.nn.functional as F
-from fastai.callback.tracker import EarlyStoppingCallback, ReduceLROnPlateau
-from fastai.data.transforms import Categorize
-from fastai.losses import BCEWithLogitsLossFlat, FocalLoss, FocalLossFlat
-from fastai.metrics import accuracy, BrierScore, F1Score, RocAucBinary
-from sklearn.model_selection import StratifiedKFold
-from sklearn.preprocessing import OneHotEncoder, StandardScaler
-from tsai.data.validation import combine_split_data, get_splits
-from tsai.models.InceptionTimePlus import InceptionTimePlus
-from tsai.tslearner import TSClassifier
+
 
 ## script to control overal running of model
 
@@ -32,9 +17,9 @@ stoc=float(sys.argv[4])
 randnum_split=3#int(sys.argv[3]) ## random number for initial split of the data
 randnum_stoc=4  ## random number to govern where stochasticity is added to the data
 randnum_train=int(sys.argv[3])
-epochs=10#int(sys.argv[4])
+epochs=100#int(sys.argv[4])
 num_optuna_trials =100# int(sys.argv[5])
-hype= "False"#sys.argv[3]
+hype= "True"#sys.argv[3]
 imp = "False"#sys.argv[4]
 device = 1#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"

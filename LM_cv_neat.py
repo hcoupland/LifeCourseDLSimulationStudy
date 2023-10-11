@@ -64,6 +64,9 @@ def metrics_bin(pred, y_test,probas, filepath,savename):
     print("{:<40} {:.6f}".format("Predicted 1 when actually 1:", LR11))
 
 
+    
+
+
     prob_true, prob_pred = calibration_curve(y_test,probas, n_bins=10)
 
     #Plot the Probabilities Calibrated curve
@@ -89,11 +92,12 @@ def metrics_bin(pred, y_test,probas, filepath,savename):
     plt.legend(loc='best')
     
     # Show the plot
-    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration.png"]))
+    plt.savefig("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration.png"]))
+    plt.clf()
     df_pp = pd.DataFrame(prob_pred)
     df_pt = pd.DataFrame(prob_true)
-    df_pp.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_pred.csv"]),index=False)
-    df_pt.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_true.csv"]),index=False)
+    df_pp.to_csv("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_pred.csv"]),index=False)
+    df_pt.to_csv("".join([filepath,"Simulations/model_results/calibration/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_calibration_prob_true.csv"]),index=False)
 
 
 
@@ -117,7 +121,7 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum, filepath, sav
 
     # fit the logistic regression model to the train data
     start = timeit.default_timer()
-    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum).fit(X_LRtrain, Ytrainvalid)
+    LRmodel = LogisticRegression(penalty="l1", tol=0.01, solver="saga",random_state=randnum,class_weight='balanced').fit(X_LRtrain, Ytrainvalid)
     stop = timeit.default_timer()
     train_time=stop - start
     start2 = timeit.default_timer() 

@@ -8,20 +8,24 @@ import seaborn as sns
 from tsai import *
 import matplotlib.pyplot as plt
 import pandas as pd
+import json
+
+
 
 import copy
 ### explainability
 ## this is the fitted model
-def explain_func(f_model,X_test,Y_test,metric_idx,filepath,randnum,dls,batch_size,savename):
+def explain_func(f_model,X_test,Y_test,filepath,randnum,dls,batch_size,savename):
     ## will have all the different ones in it
 
-    shap_values=shap_func(dls,batch_size,learn=f_model,filepath=filepath,savename=savename)
+    shap_func(dls,batch_size,learn=f_model,filepath=filepath,savename=savename)
 
-    perm_imp(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum)
+    for metric_idx in [2,4]:
+        perm_imp(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum,savename=savename)
 
-    perm_imp_prevdiag(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum, X_test=X_test, Y_test=Y_test)
+        #perm_imp_prevdiag(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum, X_test=X_test, Y_test=Y_test,savename=savename)
 
-    y_saved = count_test(f_model,X_test,Y_test)
+    count_test(f_model,X_test,Y_test,filepath=filepath,savename=savename)
 
     return
 
@@ -43,7 +47,7 @@ def shap_func(dls,batch_size,learn,filepath,savename):
 
 
     LR00_idx = np.logical_and( np.array(batch[1][num_samples:].cpu())==0, np.array(indices[:, 0]==0))
-    LR01_idx =np.logical_and( np.array(batch[1][num_samples:].cpu())==0, np.array(indices[:, 0]==1))
+    LR01_idx = np.logical_and( np.array(batch[1][num_samples:].cpu())==0, np.array(indices[:, 0]==1))
     LR10_idx = np.logical_and(np.array(batch[1][num_samples:].cpu())==1, np.array(indices[:, 0]==0))
     LR11_idx = np.logical_and(np.array(batch[1][num_samples:].cpu())==1, np.array(indices[:, 0]==1))
 
@@ -71,33 +75,49 @@ def shap_func(dls,batch_size,learn,filepath,savename):
     sns.heatmap(data=LR10_shap.mean(0), cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[1,0])
     sns.heatmap(data=LR11_shap.mean(0), cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[1,1])
     fig.tight_layout()
-    plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename,"_Averaged_SHAP_plot.png"]))
-
+    plt.savefig("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_TPE_test_", savename,"_Averaged_SHAP_plot.png"]))
+    plt.clf()
 
     for i in range(0,list(indices[:,0].shape)[0]):
         print(i)
         shap_num=i
         fig,axes = plt.subplots(1,2)
-        sns.heatmap(data=shap_values[0][shap_num,:,:], cmap='RdBu',vmin=-2.5,center=0,vmax=2.5,ax=axes[0])
-        sns.heatmap(data=shap_values[1][shap_num,:,:], cmap='RdBu',vmin=-2.5,center=0,vmax=2.5,ax=axes[1])
+        sns.heatmap(data=shap_values[0][shap_num,:,:], cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[0])
+        sns.heatmap(data=shap_values[1][shap_num,:,:], cmap='RdBu',vmin=-1,center=0,vmax=1,ax=axes[1])
         axes[0].set_title(f'Top choice 1: class {indices[shap_num, 0]}')
         axes[1].set_title(f'Top choice 2: class {indices[shap_num, 1]}')
         fig.tight_layout()
-        plt.savefig("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_", savename,"_example_SHAP_plot",str(int(i)),".png"]))
+        plt.savefig("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_example_SHAP_plot",str(int(i)),".png"]))
+        plt.clf()
 
-    df_pp = pd.DataFrame(shap_values)
-    df_pp.to_csv("".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_shapvalues.csv"]),index=False)
-    return shap_values
+    #df_pp = pd.DataFrame(shap_values)
 
-
-def perm_imp(metric_idx, learn,filepath,randnum):
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum)
-
-    step_imp=learn.step_importance (key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum)
+    #with open("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_shapvalues.json"]), 'w') as f:
+    #    json.dump(shap_values.tolist(), f, indent=2) 
 
     return
 
-def perm_imp_prevdiag(metric_idx, learn,filepath,randnum, X_test, Y_test):
+
+def perm_imp(metric_idx, learn,filepath,savename, randnum):
+    if metric_idx==2:
+        savename="".join([savename,"_AUROC"])
+
+    elif metric_idx==4:
+        savename="".join([savename,"_AUPRC"])
+
+    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"feature_imp_full"]),random_state=randnum)
+
+    step_imp=learn.step_importance (key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"step_imp_full"]),random_state=randnum)
+
+    return
+
+def perm_imp_prevdiag(metric_idx, learn,filepath,savename, randnum, X_test, Y_test):
+    if metric_idx==2:
+        savename="".join([savename,"_AUROC"])
+
+    elif metric_idx==4:
+        savename="".join([savename,"_AUPRC"])
+
     RTI_var = 8
     X_diag=X_test[np.unique(np.where(X_test[:,RTI_var,:]==1)[0]),:,:]
     print(X_diag.shape)
@@ -108,9 +128,9 @@ def perm_imp_prevdiag(metric_idx, learn,filepath,randnum, X_test, Y_test):
 
     Y_nodiag=Y_test[np.all(X_test[:,RTI_var,:]==0,axis=1)]
 
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum, X=X_diag,y=Y_diag)
+    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"feature_imp_cond"]),random_state=randnum, X=X_diag,y=Y_diag)
 
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/"]),random_state=randnum, X=X_nodiag,y=Y_nodiag)
+    step_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"perm_imp_cond"]),random_state=randnum, X=X_nodiag,y=Y_nodiag)
 
     return
 
@@ -129,14 +149,15 @@ def count_results(f_model,X_test,Y_test):
 
     return count_y
 
-def count_test(f_model,X_test,Y_test):
-    X_count=copy(X_test)
+def count_test(f_model,X_test,Y_test,filepath,savename):
+    X_count=copy.copy(X_test)
 
     ## change the scenario
     X_count[:,8,0:4] =0
     y_saved = count_results(f_model,X_test,Y_test) - count_results(f_model,X_count,Y_test)
     print(f'people saved = {y_saved}')
-    return y_saved
+
+    return
 
 ## NOw set the first 5 years of life so that there is zero poverty
 

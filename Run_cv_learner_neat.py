@@ -19,7 +19,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"briersamp_finalhype_lastrun_"])
+    savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"briersamp_finalhype_sigK4proper_resnetopt_"])
     filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_sigK4brier_test_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
     randnum=randnum_train
@@ -79,7 +79,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
         output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
     
-        for K in range(1,4):
+        for K in [4]:#range(1,4):
             # fit the logistic regression model
             #for randnum in range(0,1):
             print("  Random seed: ",randnum)
@@ -95,45 +95,45 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,1]
             entry = pd.DataFrame([outputs], columns=colnames)
             output = pd.concat([output, entry], ignore_index=True)
-            print(f'K={K}')
-            sig_name="LL"
-            train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum, filepath=filepath, savename=savename)
-            outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,1]
-            entry = pd.DataFrame([outputs], columns=colnames)
-            output = pd.concat([output, entry], ignore_index=True)
-            print(f'K={K}')
-            sig_name="baseLL"
-            train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum, filepath=filepath, savename=savename)
-            outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,1]
-            entry = pd.DataFrame([outputs], columns=colnames)
-            output = pd.concat([output, entry], ignore_index=True)
+            #print(f'K={K}')
+            #sig_name="LL"
+            #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum, filepath=filepath, savename=savename)
+            #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,1]
+            #entry = pd.DataFrame([outputs], columns=colnames)
+            #output = pd.concat([output, entry], ignore_index=True)
+            #print(f'K={K}')
+            #sig_name="baseLL"
+            #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum, filepath=filepath, savename=savename)
+            #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,1]
+            #entry = pd.DataFrame([outputs], columns=colnames)
+            #output = pd.concat([output, entry], ignore_index=True)
             # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
             
-            for int_factor in [10]:#for int_factor in [10,100,1000]:
-                print(f'K={K}; int_factor={int_factor}')
-                sig_name="org"
-                train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
-                outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
-                entry = pd.DataFrame([outputs], columns=colnames)
-                output = pd.concat([output, entry], ignore_index=True)
-                print(f'K={K}; int_factor={int_factor}')
-                sig_name="base"
-                train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
-                outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
-                entry = pd.DataFrame([outputs], columns=colnames)
-                output = pd.concat([output, entry], ignore_index=True)
-                print(f'K={K}; int_factor={int_factor}')
-                sig_name="LL"
-                train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
-                outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
-                entry = pd.DataFrame([outputs], columns=colnames)
-                output = pd.concat([output, entry], ignore_index=True)
-                print(f'K={K}; int_factor={int_factor}')
-                sig_name="baseLL"
-                train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
-                outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
-                entry = pd.DataFrame([outputs], columns=colnames)
-                output = pd.concat([output, entry], ignore_index=True)
+            #for int_factor in [10]:#for int_factor in [10,100,1000]:
+                #print(f'K={K}; int_factor={int_factor}')
+                #sig_name="org"
+                #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_original_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
+                #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
+                #entry = pd.DataFrame([outputs], columns=colnames)
+                #output = pd.concat([output, entry], ignore_index=True)
+                #print(f'K={K}; int_factor={int_factor}')
+                #sig_name="base"
+                #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
+                #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
+                #entry = pd.DataFrame([outputs], columns=colnames)
+                #output = pd.concat([output, entry], ignore_index=True)
+                #print(f'K={K}; int_factor={int_factor}')
+                #sig_name="LL"
+                #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
+                #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
+                #entry = pd.DataFrame([outputs], columns=colnames)
+                #output = pd.concat([output, entry], ignore_index=True)
+                #print(f'K={K}; int_factor={int_factor}')
+                #sig_name="baseLL"
+                #train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = Sig_modelblock.SIGmodel_block_basepoint_LL_int(X_trainvalid=X_trainvalid,Y_trainvalid=Y_trainvalid,X_test=X_test,Y_test=Y_test,K=K, randnum=randnum,int_factor=int_factor, filepath=filepath, savename=savename)
+                #outputs=[name, model_name,sig_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier,LR00, LR01, LR10, LR11, train_time, hype_time, inf_time, K,int_factor]
+                #entry = pd.DataFrame([outputs], columns=colnames)
+                #output = pd.concat([output, entry], ignore_index=True)
         output.to_csv(filepathout, index=False)
         print(output)
 
@@ -236,11 +236,13 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             #for randnum in range(0,1):
             print("  Random seed: ",randnum)
             # Rerun the model on train/test with the selected hyperparameters
-            train_time, learner = MLmodel_opt_learner.model_block(
+            train_time, learner, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time = MLmodel_opt_learner.model_block(
                 model_name=model_name,
                 arch=arch,
                 X=X_trainvalid,
                 Y=Y_trainvalid,
+                X_test=X_test,
+                Y_test=Y_test,
                 splits=splits_9010,
                 randnum=randnum,
                 epochs=epochs,
@@ -252,8 +254,10 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
                 ESPatience=ESPatience,
                 device=device,
                 metrics=metrics,
-                savename=savename
-                )
+                savename=savename,
+                filepath=filepath,
+                imp=imp)
+            
             ## Need to scale X
             print(np.mean(X_trainvalid))
             print(np.mean(X_test))
@@ -264,10 +268,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             print(np.mean(Y_test))
             print(np.std(Y_trainvalid))
             print(np.std(Y_test))
-            start2 = timeit.default_timer()
-            acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
-            stop2 = timeit.default_timer()
-            inf_time=stop2 - start2
+
             # Formatting and saving the output
             outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, train_time, hype_time, inf_time,batch_size,alpha,gamma]
             outputs.extend(list(all_params.values()))
@@ -283,17 +284,16 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             # })
 
             output = pd.concat([output, entry], ignore_index=True)
-            if imp=="True":
-                learner.feature_importance(show_chart=False, key_metric_idx=4)
+
             output.to_csv(filepathout, index=False)
             print(output)
 
         else:
             # loop for fitting model with generic/pre-specified hyperparameters
             lr_max=1e-3
-            batch_size=64
-            alpha=0.25541380#0.2
-            gamma= 4.572858
+            batch_size=32
+            alpha=0.9
+            gamma= 1.1
             # output=[]
             stop1 = timeit.default_timer()
             hype_time=stop1 - start1
@@ -301,7 +301,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             #            'ks':[3,7,9],
             #            'fc_dropout':0.4203448
             #            }
-
+            ## if want do params can change to hype block
             params = {
                 'nf': 32,#trial.suggest_categorical('nf', [32, 64, 96]),
                 'fc_dropout': 0.2763239,#trial.suggest_float('fc_dropout', 0.1, 0.5),
@@ -320,55 +320,28 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
             #for randnum in range(0,1):
             print("  Random seed: ",randnum)
 
-            if imp=="True":
-                # Fitting the model on train/test with pre-selected hyperparameters
-                train_time, learner, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time = MLmodel_opt_learner.model_block_nohype(
-                    model_name=model_name,
-                    arch=arch,
-                    X=X_trainvalid,
-                    Y=Y_trainvalid,
-                    X_test=X_test,
-                    Y_test=Y_test,
-                    splits=splits_9010,
-                    randnum=randnum,
-                    epochs=epochs,
-                    ESPatience=ESPatience,
-                    lr_max=lr_max,
-                    alpha=alpha,
-                    gamma=gamma,
-                    batch_size=batch_size,
-                    device=device,
-                    metrics=metrics,
-                    savename=savename,
-                    filepath=filepath,
-                    imp=imp)
-            else:
-                # Fitting the model on train/test with pre-selected hyperparameters
-                train_time, learner = MLmodel_opt_learner.model_block(
-                    model_name=model_name,
-                    arch=arch,
-                    X=X_trainvalid,
-                    Y=Y_trainvalid,
-                    X_test=X_test,
-                    Y_test=Y_test,
-                    splits=splits_9010,
-                    randnum=randnum,
-                    epochs=epochs,
-                    params=params,
-                    ESPatience=ESPatience,
-                    lr_max=lr_max,
-                    alpha=alpha,
-                    gamma=gamma,
-                    batch_size=batch_size,
-                    device=device,
-                    metrics=metrics,
-                    savename=savename,
-                    filepath=filepath,
-                    imp=imp)
-                start2 = timeit.default_timer()
-                acc, prec, rec, fone, auc, prc, brier,  LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
-                stop2 = timeit.default_timer()
-                inf_time=stop2 - start2
+            # Fitting the model on train/test with pre-selected hyperparameters
+            train_time, learner, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time = MLmodel_opt_learner.model_block_nohype(
+                model_name=model_name,
+                arch=arch,
+                X=X_trainvalid,
+                Y=Y_trainvalid,
+                X_test=X_test,
+                Y_test=Y_test,
+                splits=splits_9010,
+                randnum=randnum,
+                epochs=epochs,
+                ESPatience=ESPatience,
+                lr_max=lr_max,
+                alpha=alpha,
+                gamma=gamma,
+                batch_size=batch_size,
+                device=device,
+                metrics=metrics,
+                savename=savename,
+                filepath=filepath,
+                imp=imp)
+
 
             print(np.mean(X_trainvalid))
             print(np.mean(X_test))
