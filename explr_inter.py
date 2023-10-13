@@ -18,7 +18,7 @@ import copy
 def explain_func(f_model,X_test,Y_test,filepath,randnum,dls,batch_size,savename):
     ## will have all the different ones in it
 
-    shap_func(dls,batch_size,learn=f_model,filepath=filepath,savename=savename)
+    shap_func(dls,batch_size,learn=f_model,filepath=filepath,savename=savename,Y_test=Y_test, randnum=randnum, X_test=X_test)
 
     for metric_idx in [2,4]:
         perm_imp(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum,savename=savename)
@@ -30,28 +30,50 @@ def explain_func(f_model,X_test,Y_test,filepath,randnum,dls,batch_size,savename)
     return
 
 ## shap
-def shap_func(dls,batch_size,learn,filepath,savename):
-    batch = dls.one_batch()
-    num_samples = math.ceil(0.8*batch_size)
+def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
+
+    train_batches = []
+
+    for batch in dls.train:
+        train_batches.append(batch)
+
+    # Concatenate all the train batches to obtain the entire train dataset
+    train_data = torch.cat([x[0] for x in train_batches], dim=0)
+
+    # Create the GradientExplainer
     explainer = shap.GradientExplainer(
-        learn.model.cpu(), torch.tensor(batch[0][:num_samples]).cpu()
+        learn.model.cpu(),
+        train_data.cpu()  # Use the entire train set
     )
 
+    #batch = dls.one_batch()
+    #num_samples = math.ceil(0.8*batch_size)
+    #explainer = shap.GradientExplainer(
+    #    learn.model.cpu(), torch.tensor(batch[0][:num_samples]).cpu()
+    #)
+
     # calculate shapely values
+    #shap_values, indices = explainer.shap_values(
+    #    torch.tensor(batch[0][num_samples:]).cpu(),
+    #    ranked_outputs=2
+    #)
+
     shap_values, indices = explainer.shap_values(
-        torch.tensor(batch[0][num_samples:]).cpu(),
+        torch.tensor(X_test[0:1999,:,:]).cpu(), ## torch.tensor(X_test).cpu(),  
+        rseed=randnum,
         ranked_outputs=2
     )
+
 
     shap_out=shap_values[0]
 
 
-    LR00_idx = np.logical_and( np.array(batch[1][num_samples:].cpu())==0, np.array(indices[:, 0]==0))
-    LR01_idx = np.logical_and( np.array(batch[1][num_samples:].cpu())==0, np.array(indices[:, 0]==1))
-    LR10_idx = np.logical_and(np.array(batch[1][num_samples:].cpu())==1, np.array(indices[:, 0]==0))
-    LR11_idx = np.logical_and(np.array(batch[1][num_samples:].cpu())==1, np.array(indices[:, 0]==1))
+    LR00_idx = np.logical_and( np.array(Y_test[0:1999])==0, np.array(indices[:, 0]==0))
+    LR01_idx =np.logical_and( np.array(Y_test[0:1999])==0, np.array(indices[:, 0]==1))
+    LR10_idx = np.logical_and(np.array(Y_test[0:1999])==1, np.array(indices[:, 0]==0))
+    LR11_idx = np.logical_and(np.array(Y_test[0:1999])==1, np.array(indices[:, 0]==1))
 
-    little_check=batch[0][num_samples:]
+    little_check=X_test[0:1999,:,:]
 
     LR00_shap=shap_out[LR00_idx,:,:]
     LR01_shap=shap_out[LR01_idx,:,:]
