@@ -113,7 +113,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
 
             # fit the model to the train/test data
-            Data_load.random_seed(randnum_train)
+            #Data_load.random_seed(randnum_train)
 
             # FIXME: check activation
             if model_name=="InceptionTime" or model_name=="ResNet":
@@ -175,7 +175,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
             tfms=[None,Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
 
-            Data_load.random_seed(randnum)
+            #Data_load.random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
@@ -206,7 +206,7 @@ def hyperopt(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_trials,model_name
 
     
     # set random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     #torch.set_num_threads(18)
 
     search_space = {
@@ -391,7 +391,7 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
 
 
             # fit the model to the train/test data
-            Data_load.random_seed(randnum_train)
+            #Data_load.random_seed(randnum_train)
 
             # FIXME: check activation
             if model_name=="InceptionTime" or model_name=="ResNet":
@@ -473,7 +473,7 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
             tfms=[None,Categorize()]
             dsets = TSDatasets(X_combined, y_combined,tfms=tfms, splits=stratified_splits,inplace=True)
 
-            Data_load.random_seed(randnum)
+            #Data_load.random_seed(randnum)
 
             # prepare this data for the model (define batches etc)
             dls=TSDataLoaders.from_dsets(
@@ -519,7 +519,7 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
 
     
     # set random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     #torch.set_num_threads(18)
 
     # create optuna study
@@ -595,10 +595,8 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
     return trial
 
 
-def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, metrics,filepath,imp):
+def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,lr_max,alpha,gamma,batch_size,ESPatience,device,savename, weight_decay, metrics,filepath,imp):
     # function to fit the model on the train/test data with pre-trained hyperparameters
-
-    # X2,Y2,splits_kfold2=combine_split_data([Xtrain,Xvalid],[Ytrain,Yvalid])
 
     FLweights=[alpha,1-alpha]
     weights=torch.tensor(FLweights, dtype=torch.float).to(device)
@@ -610,8 +608,7 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
     #X3d=to3d(X)
     tfms=[None,Categorize()]
     dsets = TSDatasets(X, Y,tfms=tfms, splits=splits,inplace=True)
-
-    #Data_load.random_seed(randnum,True)
+    #Data_load.set_random_seeds(randnum)
 
     # define batches
     dls=TSDataLoaders.from_dsets(
@@ -620,11 +617,12 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
         #sampler=sampler,
         bs=batch_size, ## [batch_size]?
         num_workers=0,
-        device=device#,
-        #shuffle=False,
+        device=device,
+        shuffle=False
         #batch_tfms=[TSStandardize(by_var=True)]#(TSStandardize(by_var=True),),
         )
 
+    #dls.rng.seed(randnum) #added this line
 
     for i in range(10):
         x,y = dls.one_batch()
@@ -637,7 +635,7 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
     print(dls.vars)
 
     # fit the model to the train/test data
-    Data_load.random_seed2(randnum,dls=dls)
+    
     start=timeit.default_timer()
     #clf=TSClassifier(X3d,Y,splits=splits,arch=arch,arch_config=dict(params),metrics=metrics,loss_func=FocalLossFlat(gamma=gamma,weight=weights),verbose=True,cbs=[ReduceLROnPlateau()])
 
@@ -649,6 +647,14 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
     else:
         model = arch(dls.vars, dls.c,**params)
  
+    ## prints model initial weights
+    #for name, param in model.named_parameters():
+    #    if param.requires_grad:
+    #        print(name, param.data)
+
+
+    ## prints model paramters and structure
+    #print(model)
 
     model.to(device)
     learn = ts_learner(#Learner(
@@ -657,9 +663,15 @@ def model_block(model_name,arch,X,Y,X_test,Y_test,splits,params,epochs,randnum,l
         metrics=metrics,
         loss_func=FocalLossFlat(gamma=torch.tensor(gamma).to(device),weight=weights),#loss_func=FocalLossFlat(gamma=gamma,weight=weights),
         seed=randnum,
-        cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()]
+        cbs=[EarlyStoppingCallback(patience=ESPatience),ReduceLROnPlateau()],
+        wd=weight_decay
         )
     learn.save("".join([savename, '_finalmodel_stage0']))
+
+    #for xb, yb in dls.train:
+        #print('Input batch:', xb.data)
+        #print('Target batch:', yb)
+        #break
 
     learn.fit_one_cycle(epochs, lr_max)
     learn.save("".join([savename, '_finalmodel_stage1']))
@@ -723,7 +735,7 @@ def model_block_nohype(model_name,arch,X,Y,X_test,Y_test,splits,epochs,randnum,E
     print(dls.vars)
     #weights=torch.tensor(compute_class_weight(class_weight='balanced',classes=np.array([0,1]),y=Y[splits[0]]), dtype=torch.float)
 
-    Data_load.random_seed2(randnum,dls=dls)
+    #Data_load.random_seed2(randnum,dls=dls)
     start=timeit.default_timer()
 
     if model_name=="InceptionTime" or model_name=="ResNet":

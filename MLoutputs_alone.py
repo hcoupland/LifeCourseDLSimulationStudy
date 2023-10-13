@@ -5,6 +5,9 @@ from tsai.all import *
 
 import numpy as np
 import pandas as pd
+import torch
+import random
+import statistics
 
 from fastai.vision.all import *
 import Data_load_neat as Data_load
@@ -20,40 +23,52 @@ from tsai.models.InceptionTimePlus import InceptionTimePlus
 
 
 # load in arguments from command line
-#name = sys.argv[1]
-model_name=sys.argv[1]#sys.argv[2]
-#stoc=float(sys.argv[4])
+name = sys.argv[1]
+model_name=sys.argv[2]#sys.argv[2]
+stoc=float(sys.argv[3])
 randnum_split=3#int(sys.argv[3]) ## random number for initial split of the data
-randnum_stoc=4  ## random number to govern where stochasticity is added to the data
-randnum_train=int(sys.argv[2])
+randnum_stoc=4,
+randnum_train=int(sys.argv[4])
 imp = "False"#sys.argv[4]
-device = int(sys.argv[3])#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
+device = int(sys.argv[5])#sys.argv[3]#'cuda' if torch.cuda.is_available() else 'cpu'
 # filepath="C:/Users/hlc17/Documents/DANLIFE/Simulations/Simulations/Data_simulation/"
 filepath="/home/DIDE/smishra/Simulations/"
 
-def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_train, device,subset=-1):
+def run(name, model_name, randnum_split,imp,filepath,stoc,randnum_stoc,randnum_train, device):
 
-    ## Function to load in data
-    X_raw, y_raw = Data_load.load_data(name=name,filepath=filepath,subset=subset)
+    Data_load.set_random_seeds(randnum_train)
 
-    ## Function to obtain the train/test split
-    X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
+    ## function to load all the data from the filepath
+
+    X_raw = np.load("".join([filepath,"input_data/",name, "_X.npy"])).astype(np.float32)
+
+    Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",name, "_YH.npy"])))
+    y_raw = Y_raw[:, np.shape(Y_raw)[1]  -1]
+
+    ## split out the test set
+    splits = get_splits(
+            y_raw,
+            valid_size=0.2,
+            stratify=True,
+            shuffle=True,
+            test_size=0,
+            show_plot=False,
+            random_state=randnum_split
+            )
+    X_trainvalid, X_test = X_raw[splits[0]], X_raw[splits[1]]
+    Y_trainvalid, Y_test = y_raw[splits[0]], y_raw[splits[1]]
+
+    print(f'sum = {sum(splits[0]) }; mean = {sum(splits[0]) / len(splits[0]) }; var = {statistics.variance(splits[0]) }')
     #print(f'First 20 1s indices pre stoc = {np.where(Y_trainvalid==1)[0:19]}; ')
     if stoc>0:
-        Y_trainvalid_stoc=Data_load.add_stoc_new(Y_trainvalid,stoc=stoc,randnum=randnum_stoc)
+        Y_trainvalid_stoc=Data_load.add_stoc_new(Y_trainvalid,stoc=stoc, randnum=randnum_stoc)
     else:
         Y_trainvalid_stoc=Y_trainvalid
 
-    #print(f'First 20 1s indices stoc = {np.where(Y_trainvalid_stoc==1)[0:19]}; ')
-
-    ## Now scale all the data for ease (can fix this later)
-    X_scaled=Data_load.prep_data(X_raw,splits)
-
-    X_trainvalid_s, X_test_s=X_scaled[splits[0]], X_scaled[splits[1]]
 
     for (arr, arr_name) in zip(
-        [X_trainvalid, X_test, X_trainvalid_s, X_test_s, Y_trainvalid, Y_test],
-        ['X_trainvalid', 'X_test', 'X_trainvalid_s', 'X_test_s', 'Y_trainvalid', 'Y_test']
+        [X_trainvalid, X_test, Y_trainvalid, Y_test],
+        ['X_trainvalid', 'X_test', 'Y_trainvalid', 'Y_test']
     ):
         if len(arr.shape) > 1:
             print(f'{arr_name}: mean = {np.mean(arr):.3f}; std = {np.std(arr):.3f}: min mean = {np.mean(arr,(1,2)).min():.3f}: max mean = {np.mean(arr,(1,2)).max():.3f}')
@@ -62,9 +77,7 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
             print(f'{arr_name}: mean = {np.mean(arr):.3f}; std = {np.std(arr):.3f}')
 
 
-    #print('Data generated')
-
-    savename="".join([ "explr_",name,"_stoc",str(int(stoc*100)),"_",model_name,"_randsp",str(int(randnum_split)),"_randtr",str(int(randnum_train)),"_fixagain"])
+    savename="".join([ "explr_",name,"_stoc",str(int(stoc*100)),"_",model_name,"_randsp",str(int(randnum_split)),"_randtr",str(int(randnum_train)),"_fixagain2"])
     filepathout="".join([filepath,"Simulations/model_results/outputCVL_", savename, ".csv"])
 
     print(f'data= {name}; model name = {model_name}; stoc= {stoc}')
@@ -75,12 +88,13 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
     params_mat = pd.read_csv('plot_data.csv')
     
     lr_max=1e-3
-    ESPatience=4#2
+    ESPatience=2#4#2
+    weight_decay=0
 
     params_row = params_mat.loc[(params_mat['data'] == name) & (params_mat['model'] == model_name) & (params_mat['stoc'] == int(stoc*100)) ]
 
     batch_size=int(params_row["batch_size"].values[0])#64
-    epochs=100#int(params_row["epochs"].values[0])#64
+    epochs=10#int(params_row["epochs"].values[0])#64
     alpha=params_row["alpha"].values[0]#0.25541380#0.2
     gamma=params_row["gamma"].values[0]# 4.572858
     print(f'alpha={alpha}, gamma={gamma}, batch_size={batch_size}, epochs={epochs}')
@@ -98,7 +112,7 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
         arch=ResNetPlus
         params={'nf':int(params_row["nf"].values[0]),
                 'ks':literal_eval(params_row["ks"].values[0]),     ###
-                'fc_dropout':params_row["fc_dropout"].values[0]
+               'fc_dropout':params_row["fc_dropout"].values[0]
                 }
         if np.isnan(params['nf']):
             params['nf'] = 32
@@ -156,7 +170,7 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
         arch=LSTMAttention
         params = {
                     'n_heads': int(params_row["n_heads"].values[0]),#trial.suggest_categorical('n_heads', [8,12,16]),#'n_heads': trial.suggest_categorical('n_heads', [8,16,32]),
-                    'd_ff': int(params_row["d_ff"].values[0]),#trial.suggest_categorical('d_ff', [256,512,1024,2048,4096]),#256-4096#'d_ff': trial.suggest_categorical('d_ff', [64,128,256]),
+                    'd_ff': int(params_row["d_ff"].values[0]),#trial.suggest_categorical('d_ff', [256,512,1024,2048,4096]),#2564096#'d_ff': trial.suggest_categorical('d_ff', [64,128,256]),
                     'encoder_layers': int(params_row["encoder_layers"].values[0]),#trial.suggest_categorical('encoder_layers', [2,3,4]),
                     'hidden_size': int(params_row["hidden_size"].values[0]),#trial.suggest_categorical('hidden_size', [32,64,128]),
                     'rnn_layers': int(params_row["rnn_layers"].values[0]),#trial.suggest_categorical('rnn_layers', [1,2,3]),
@@ -180,7 +194,7 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
             params['rnn_dropout'] = 0.2
 
     print(f'Model params = {params}')
-    #Data_load.random_seed(randnum_split)  ## remove once runs fixed - and rename the output of the new ones (not bodge ones)
+    #Data_load.random_seed(randnum_split)  ## remove once runs fixed  and rename the output of the new ones (not bodge ones)
 
     ## split out the test set
     splits_9010 = get_splits(
@@ -197,11 +211,13 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
     Xtrainvalid10=X_trainvalid[splits_9010[1]]
     Ytrainvalid10=Y_trainvalid_stoc[splits_9010[1]]
 
+    print(f'sum = {sum(splits_9010[0]) }; mean = {sum(splits_9010[0]) / len(splits_9010[0]) }; var = {statistics.variance(splits_9010[0]) }')
     print(Counter(Y_trainvalid_stoc))
     print(Counter(Ytrainvalid90))
     print(Counter(Ytrainvalid10))
 
-    # Fitting the model on train/test with pre-selected hyperparameters
+    # Fitting the model on train/test with preselected hyperparameters
+
     train_time, learner, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11, inf_time = MLmodel_opt_learner.model_block(
         model_name=model_name,
         arch=arch,
@@ -221,18 +237,19 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
         device=device,
         metrics=metrics,
         savename=savename,
+        weight_decay=weight_decay,
         filepath=filepath,
         imp=imp)
 
-    
-    colnames=["data","model","seed","epochs", "accuracy", "precision", "recall", "f1", "auc","prc","brier", "LR00", "LR01", "LR10", "LR11","batch_size","alpha","gamma","train_time","inf_time","hype_time","ESPatience","learning_rate"]
+
+    colnames=["data","model","seed","epochs", "accuracy", "precision", "recall", "f1", "auc","prc","brier", "LR00", "LR01", "LR10", "LR11","batch_size","alpha","gamma","train_time","inf_time","hype_time","ESPatience","learning_rate","weight_decay"]
     colnames.extend(list(params.keys()))
     output = pd.DataFrame(columns=colnames)
 
     #acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11=MLmodel_opt_learner.test_results(learner,X_test,Y_test,filepath,savename)
 
     # Formatting and saving the output
-    outputs=[name, model_name, randnum_train, epochs, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, batch_size,alpha,gamma, train_time, inf_time, 0, ESPatience, lr_max]
+    outputs=[name, model_name, randnum_train, epochs, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, batch_size,alpha,gamma, train_time, inf_time, 0, ESPatience, lr_max,weight_decay]
     outputs.extend(list(params.values()))
 
     entry = pd.DataFrame([outputs], columns=colnames)
@@ -248,7 +265,13 @@ def run(name, model_name, randnum_split,randnum_stoc,imp,filepath,stoc,randnum_t
 
 
 if __name__ == '__main__':
-    for stoc in [0,0.1]:#[0,0.1]:
-        for name in ["data_2real1newerbigdet","data_2real1bigdet","data_2real2bigdet","data_2real3altbigdet","data_2real3newerbigdet","data_2real3newestbigdet","data_2real4alt2newerbigdet","data_2real4alt2newestbigdet","data_2real4newerbigdet","data_2real4newestbigdet","data_2real5newerbigdet","data_2real6bigdet","data_2real6newerbigdet","data_2real7newerbigdet",]:
-            for randnum_train in [7,8,9]:
-                run(name=name, model_name=model_name,randnum_stoc=randnum_stoc,stoc=stoc, randnum_split=randnum_split,randnum_train=randnum_train,imp=imp,filepath=filepath,device=device)
+    run(name=name,
+        model_name=model_name,
+        randnum_stoc=randnum_stoc,
+        stoc=stoc,
+        randnum_split=randnum_split,
+        randnum_train=randnum_train,
+        imp=imp,
+        filepath=filepath,
+        device=device
+        )

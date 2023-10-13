@@ -4,6 +4,7 @@ import math
 import random
 from collections import Counter
 from tsai.all import *
+import statistics
 
 import numpy as np
 import torch
@@ -24,6 +25,15 @@ from tsai.data.validation import get_splits
 import torch.nn.functional as F
 
 
+def set_random_seeds(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    np.random.seed(seed)
+    random.seed(seed)
+
 def random_seed(seed_value, use_cuda=True):
     #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
     np.random.seed(seed_value)  # Numpy vars
@@ -35,6 +45,7 @@ def random_seed(seed_value, use_cuda=True):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
     print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
+    return
 
 def random_seed2(seed_value,dls, use_cuda=True):
     #function to set the random seed for numpy, pytorch, python.random and pytorch GPU vars.
@@ -48,6 +59,7 @@ def random_seed2(seed_value,dls, use_cuda=True):
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
     print(f"Random state set:{seed_value}, cuda used: {use_cuda}")
+    return
 
 def onehot_func(X):
     #function to one hot the data
@@ -185,7 +197,7 @@ def split_data(X, Y,randnum):
     # function to load the data and do the original train/test split
 
     ## Set seed
-    random_seed(randnum)
+    random.seed(randnum)
     torch.set_num_threads(18)
 
     #X_new,X_new3d,Y_stoc,Yorg,splits_new,dls=stoc_data(Y, X,stoc=stoc,randnum=randnum)
@@ -294,7 +306,7 @@ def stoc_data(Y, X,stoc,randnum):
 def add_stoc_new(Y,stoc,randnum):
     # function to add stochasticity to Y
     ## Set seed
-    random_seed(randnum)
+    random.seed(randnum)
 
     # Selects the number of positive values that need to be switched
     num1s=np.sum(Y)
@@ -305,6 +317,8 @@ def add_stoc_new(Y,stoc,randnum):
     # Randomly selects the correct number of 1s/0s that will be switched to 0s/1s
     which10=random.sample(list(which1),num10)
     which01=random.sample(list(which0),num10)
+
+    print(f'sum stoc = {np.sum(which10) }; mean stoc = {np.mean(which10)}; var stoc = {np.var(which10) }')
 
     #Y_stoc=copy.copy(Y)
     # Switches the 1s to 0s and 0s to 1s
