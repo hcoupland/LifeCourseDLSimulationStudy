@@ -107,7 +107,7 @@ def LRmodel_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum, filepath, sav
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.set_random_seeds(randnum)
 
     # sclae and one-hot the data
     #X_scaled=Data_load.prep_data(X, splits)
@@ -139,7 +139,7 @@ def LRmodelpoly_block(Xtrainvalid, Ytrainvalid, Xtest, Ytest, randnum,filepath,s
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
 
     # sclae and one-hot the data
     #X_scaled=Data_load.prep_data(X, splits)

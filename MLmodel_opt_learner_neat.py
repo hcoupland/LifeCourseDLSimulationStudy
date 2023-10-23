@@ -559,7 +559,8 @@ def hyperopt_old_100runsout(Xtrainvalid,Ytrainvalid,epochs,randnum,num_optuna_tr
     study.optimize(
         objective_cv,
         n_trials=num_optuna_trials,
-        show_progress_bar=True#,
+        show_progress_bar=True,
+        gc_after_trial=True
         #n_jobs=4
         )
 

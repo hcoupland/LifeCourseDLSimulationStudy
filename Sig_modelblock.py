@@ -59,7 +59,7 @@ def SIGmodel_block_original(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randn
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.set_random_seeds(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_original(X_trainvalid, X_test, K)
@@ -139,7 +139,7 @@ def SIGmodel_block_basepoint(X_trainvalid, Y_trainvalid, X_test, Y_test, K, rand
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint(X_trainvalid, X_test, K)
@@ -226,7 +226,7 @@ def SIGmodel_block_basepoint_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_LL(X_trainvalid, X_test, K)
@@ -309,7 +309,7 @@ def SIGmodel_block_LL(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum, fi
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_LL(X_trainvalid, X_test, K)
@@ -393,7 +393,7 @@ def SIGmodel_block_original_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, r
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_original_int(X_trainvalid, X_test, K, int_factor)
@@ -485,7 +485,7 @@ def SIGmodel_block_basepoint_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, 
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_int(X_trainvalid, X_test, K,int_factor)
@@ -581,7 +581,7 @@ def SIGmodel_block_basepoint_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, 
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_basepoint_LL_int(X_trainvalid, X_test, K,int_factor)
@@ -673,7 +673,7 @@ def SIGmodel_block_LL_int(X_trainvalid, Y_trainvalid, X_test, Y_test, K, randnum
     # function to fit and analyse the logistic regression model
     
     # random seed
-    Data_load.random_seed(randnum)
+    #Data_load.random_seed(randnum)
     start1 = timeit.default_timer()
     # flatten the data
     X_LRtrain, X_LRtest = Sig_func_LL_int(X_trainvalid, X_test, K,int_factor)

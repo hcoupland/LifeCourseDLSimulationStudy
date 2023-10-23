@@ -15,11 +15,11 @@ import Sig_modelblock
 import explr_inter
 #import rpy2.rinterface
 
-def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_train, filepath,device,randnum_split=8, epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
+def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_train,stoc, randnum_stoc, filepath,device,randnum_split=8, epochs=10,num_optuna_trials = 100, hype=False, imp=False, folds=5):
     # function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output
 
     # Giving the filepath for the output
-    savename="".join([ name,"_",model_name,"_randsp",str(int(randnum_split)),"_rand",str(int(randnum_train)),"_epochs",str(int(epochs)),"_trials",str(int(num_optuna_trials)),"_hype",hype,"briersamp_finalhype_sigK4proper_resnetopt_"])
+    savename="".join([ "normal_",name,"_stoc",str(int(stoc*100)),"_",model_name,"_randsp",str(int(randnum_split)),"_randtr",str(int(randnum_train)),"_hype",hype,"_fixagain2"])
     filepathout="".join([filepath,"Simulations/model_results/outputCVL_alpha_finalhype_last_run_sigK4brier_test_", savename, ".csv"])
     #sys.stdout=open("".join(["/home/fkmk708805/data/workdata/708805/helen/Results/outputCV_", savename, ".txt"]),"w")
     randnum=randnum_train
@@ -35,7 +35,8 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
  
     if model_name=="LR":
 
-        colnames=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "brier","LR00", "LR01", "LR10", "LR11", "train_time", "hype_time", "inf_time"]
+
+        colnames=["data","model","stoc","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "brier","LR00", "LR01", "LR10", "LR11", "train_time", "hype_time", "inf_time"]
         output = pd.DataFrame(columns=colnames)#(), index=['x','y','z'])
 
 
@@ -46,7 +47,7 @@ def All_run(name,model_name,X_trainvalid, Y_trainvalid, X_test, Y_test,randnum_t
         train_time, hype_time, inf_time, acc, prec, rec, fone, auc, prc, brier, LR00, LR01, LR10, LR11 = LM_cv.LRmodel_block(Xtrainvalid=X_trainvalid,Ytrainvalid=Y_trainvalid,Xtest=X_test,Ytest=Y_test,randnum=randnum, filepath=filepath, savename=savename)
         
         # Formatting and saving the output
-        outputs=[name, model_name, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, train_time, hype_time, inf_time]
+        outputs=[name, model_name,stoc, randnum, epochs, num_optuna_trials, acc, prec, rec, fone, auc,prc, brier, LR00, LR01, LR10, LR11, train_time, hype_time, inf_time]
         entry = pd.DataFrame([outputs], columns=colnames)
         output = pd.concat([output, entry], ignore_index=True)
         # output = pd.DataFrame([outputs], columns=["data","model","seed","epochs","trials", "accuracy", "precision", "recall", "f1", "auc","prc", "LR00", "LR01", "LR10", "LR11", "time"])
