@@ -9,10 +9,8 @@ from tsai import *
 import matplotlib.pyplot as plt
 import pandas as pd
 import json
-
-
-
 import copy
+
 ### explainability
 ## this is the fitted model
 def explain_func(f_model,X_test,Y_test,filepath,randnum,dls,batch_size,savename):
@@ -21,11 +19,11 @@ def explain_func(f_model,X_test,Y_test,filepath,randnum,dls,batch_size,savename)
     shap_func(dls,batch_size,learn=f_model,filepath=filepath,savename=savename,Y_test=Y_test, randnum=randnum, X_test=X_test)
 
     for metric_idx in [2,4]:
-        perm_imp(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum,savename=savename)
+        perm_imp(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum,X_test=X_test, Y_test=Y_test,savename=savename)
 
         #perm_imp_prevdiag(metric_idx=metric_idx, learn=f_model,filepath=filepath,randnum=randnum, X_test=X_test, Y_test=Y_test,savename=savename)
 
-    count_test(f_model,X_test,Y_test,filepath=filepath,savename=savename)
+    #count_test(f_model,X_test,Y_test,filepath=filepath,savename=savename)
 
     return
 
@@ -59,7 +57,7 @@ def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
     #)
 
     shap_values, indices = explainer.shap_values(
-        torch.tensor(X_test[0:1999,:,:]).cpu(), ## torch.tensor(X_test).cpu(),  
+        torch.tensor(X_test[0:499,:,:]).cpu(), ## torch.tensor(X_test).cpu(),  
         rseed=randnum,
         ranked_outputs=2
     )
@@ -68,12 +66,12 @@ def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
     shap_out=shap_values[0]
 
 
-    LR00_idx = np.logical_and( np.array(Y_test[0:1999])==0, np.array(indices[:, 0]==0))
-    LR01_idx =np.logical_and( np.array(Y_test[0:1999])==0, np.array(indices[:, 0]==1))
-    LR10_idx = np.logical_and(np.array(Y_test[0:1999])==1, np.array(indices[:, 0]==0))
-    LR11_idx = np.logical_and(np.array(Y_test[0:1999])==1, np.array(indices[:, 0]==1))
+    LR00_idx = np.logical_and( np.array(Y_test[0:499])==0, np.array(indices[:, 0]==0))
+    LR01_idx =np.logical_and( np.array(Y_test[0:499])==0, np.array(indices[:, 0]==1))
+    LR10_idx = np.logical_and(np.array(Y_test[0:499])==1, np.array(indices[:, 0]==0))
+    LR11_idx = np.logical_and(np.array(Y_test[0:499])==1, np.array(indices[:, 0]==1))
 
-    little_check=X_test[0:1999,:,:]
+    little_check=X_test[0:499,:,:]
 
     LR00_shap=shap_out[LR00_idx,:,:]
     LR01_shap=shap_out[LR01_idx,:,:]
@@ -85,10 +83,10 @@ def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
     LR10_base=little_check[LR10_idx,:,:]
     LR11_base=little_check[LR11_idx,:,:]
 
-    LR00_base=np.array(LR00_base.cpu())
-    LR01_base=np.array(LR01_base.cpu())
-    LR10_base=np.array(LR10_base.cpu())
-    LR11_base=np.array(LR11_base.cpu())
+    LR00_base=np.array(LR00_base)
+    LR01_base=np.array(LR01_base)
+    LR10_base=np.array(LR10_base)
+    LR11_base=np.array(LR11_base)
 
 
     fig,axes = plt.subplots(2,2,figsize=(18,10))
@@ -100,7 +98,7 @@ def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
     plt.savefig("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_TPE_test_", savename,"_Averaged_SHAP_plot.png"]))
     plt.clf()
 
-    for i in range(0,list(indices[:,0].shape)[0]):
+    for i in range(0,min(list(indices[:,0].shape)[0],10)):
         print(i)
         shap_num=i
         fig,axes = plt.subplots(1,2)
@@ -117,19 +115,40 @@ def shap_func(dls,batch_size,learn,filepath,savename,Y_test,randnum,X_test):
     #with open("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_TPE_test_", savename, "_shapvalues.json"]), 'w') as f:
     #    json.dump(shap_values.tolist(), f, indent=2) 
 
+    shap0 = shap_values[0]
+    shap1 = shap_values[1]
+    shap0 = shap0.reshape(shap0.shape[0],shap0.shape[1]*shap0.shape[2])
+    shap1 = shap1.reshape(shap1.shape[0],shap1.shape[1]*shap1.shape[2])
+    shap0 = pd.DataFrame(shap0)
+    shap1 = pd.DataFrame(shap1)
+    batch0 =X_test[0:499,:,:]
+    batch1 = np.array(Y_test[0:499])
+    batch0 = batch0.reshape(batch0.shape[0],batch0.shape[1]*batch0.shape[2])
+
+    batch0 = pd.DataFrame(batch0)
+    batch1 = pd.DataFrame(batch1)
+    indices_out = pd.DataFrame(indices)
+
+    shap0.to_csv("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_shap0.csv"]),index=False)
+    shap1.to_csv("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_shap1.csv"]),index=False)
+
+    batch0.to_csv("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_batch0.csv"]),index=False)
+    batch1.to_csv("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_batch1.csv"]),index=False)
+    indices_out.to_csv("".join([filepath,"Simulations/model_results/explr/outputCVL_alpha_finalhype_last_run_", savename,"_indices.csv"]),index=False)
+
     return
 
 
-def perm_imp(metric_idx, learn,filepath,savename, randnum):
+def perm_imp(metric_idx, learn,filepath,savename, randnum, X_test, Y_test):
     if metric_idx==2:
         savename="".join([savename,"_AUROC"])
 
     elif metric_idx==4:
         savename="".join([savename,"_AUPRC"])
 
-    feature_imp=learn.feature_importance(key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"feature_imp_full"]),random_state=randnum)
+    feature_imp=learn.feature_importance(X=X_test, y=Y_test,key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"feature_imp_full"]),random_state=randnum)
 
-    step_imp=learn.step_importance (key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"step_imp_full"]),random_state=randnum)
+    step_imp=learn.step_importance (X=X_test, y=Y_test,key_metric_idx=metric_idx,save_df_path="".join([filepath,"Simulations/model_results/explr/",savename,"step_imp_full"]),random_state=randnum)
 
     return
 
