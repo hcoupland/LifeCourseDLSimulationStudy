@@ -1,4 +1,0 @@
-data,model,seed,epochs,trials,accuracy,precision,recall,f1,auc,prc,LR00,LR01,LR10,LR11,time,lr_max,batch_size,alpha,gamma
-data_2real1bigdet,InceptionTime,0,1,10,1.0,1.0,1.0,1.0,1.0,1.0,18795,0,0,1205,57.37240337906405,0.001,64,0.5,3
-data_2real1bigdet,InceptionTime,1,1,10,1.0,1.0,1.0,1.0,1.0,1.0,18795,0,0,1205,52.39928691415116,0.001,64,0.5,3
-data_2real1bigdet,InceptionTime,2,1,10,1.0,1.0,1.0,1.0,1.0,1.0,18795,0,0,1205,52.88215307705104,0.001,64,0.5,3
