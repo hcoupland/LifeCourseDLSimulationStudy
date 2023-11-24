@@ -3,10 +3,10 @@
 import sys
 import numpy as np
 from tsai.data.validation import get_splits
-import statistics
 
-import Data_load_neat as Data_load
-import Run_cv_learner_neat as Run_cv_learner
+
+import Load_data
+import Run_All_Models
 
 ### Model arguments, some of which are set in command line
 
@@ -32,15 +32,37 @@ IMP = "False"
 FOLDS = 3
 
 
-def run(filepath, device, data_name, model_name, stoc, randnum_train, randnum_split, randnum_stoc, epochs, num_optuna_trials, hype, imp, folds, subset=-1):
+def run(filepath, device, data_name, model_name, stoc, randnum_train, randnum_split, randnum_stoc, epochs, num_optuna_trials, hype, imp, folds):
+    """Function to train the model and provide insights into model performance
 
-    Data_load.set_random_seeds(randnum_train)
+    Args:
+        filepath (string): Gives the location of the data
+        device (int): For cuda, is 0 or 1 to give the device to run
+        data_name (string): Name of the simulated data.
+        model_name (string): Name of the DL model, out of ResNet, LSTMAttention, MLSTMFCN, InceptionTime and LR
+        stoc (float): The proportion of noise in the data, between 0 and 1
+        randnum_train (int): Seed used to control optimisation process and model weight initialisation
+        randnum_split (int): Seed used to split the data into test and train groups
+        randnum_stoc (int): Seed used to control which data is switched when noisy
+        epochs (int): Number of epochs
+        num_optuna_trials (int): Number of hyperparameter optimisation trials (for randomsampler)
+        hype (bool): Whether hyperparameter optimisation will be conducted
+        imp (bool): Whether feature importance will be conducted
+        folds (int): Number of folds in k-fold cross-validation
+
+    Returns:
+        table: Table containing model run performance and parameter details
+    """
+
+    # set random seeds for reproducibility
+    Load_data.set_random_seeds(randnum_train)
     print(data_name)
 
+    # Load the input data (same for all outputs)
+    X_raw = np.load("".join([filepath,"Simulated_data/",data_name, "_X.npy"])).astype(np.float32)
 
-    X_raw = np.load("".join([filepath,"input_data/",data_name, "_X.npy"])).astype(np.float32)
-
-    Y_raw = np.squeeze(np.load("".join([filepath,"input_data/",data_name, "_YH.npy"])))
+    # Load the output data (specific to LCP)
+    Y_raw = np.squeeze(np.load("".join([filepath,"Simulated_data/",data_name, "_YH.npy"])))
     y_raw = Y_raw[:, np.shape(Y_raw)[1]  -1]
 
     ## split out the test set
@@ -56,33 +78,27 @@ def run(filepath, device, data_name, model_name, stoc, randnum_train, randnum_sp
     X_trainvalid, X_test = X_raw[splits[0]], X_raw[splits[1]]
     Y_trainvalid, Y_test = y_raw[splits[0]], y_raw[splits[1]]
 
-    print(f'sum = {sum(splits[0]) }; mean = {sum(splits[0]) / len(splits[0]) }; var = {statistics.variance(splits[0]) }')
-    #print(f'First 20 1s indices pre stoc = {np.where(Y_trainvalid==1)[0:19]}; ')
+    # Add noise to the data
     if stoc>0:
-        Y_trainvalid_stoc=Data_load.add_stoc_new(Y_trainvalid,stoc=stoc, randnum=randnum_stoc)
+        Y_trainvalid_stoc = Load_data.add_noise(Y_trainvalid, stoc=stoc, randnum=randnum_stoc)
     else:
-        Y_trainvalid_stoc=Y_trainvalid
+        Y_trainvalid_stoc = Y_trainvalid
 
 
-    ## Function to load in data
-    X_raw, y_raw = Data_load.load_data(name=data_name,filepath=filepath,subset=subset)
-
-    ## Function to obtain the train/test split
-    X_trainvalid, Y_trainvalid, X_test, Y_test, splits = Data_load.split_data(X=X_raw,Y=y_raw,randnum=randnum_split)
-
-    output=Run_cv_learner.All_run(
+    # Script to run model and collect outputs
+    output=Run_All_Models.All_run(
         name=data_name,
         model_name=model_name,
-        X_trainvalid=X_trainvalid, 
-        Y_trainvalid=Y_trainvalid_stoc, 
-        X_test=X_test, 
-        Y_test=Y_test, 
-        randnum_split=randnum_split, 
-        randnum_train=randnum_train, 
+        X_trainvalid=X_trainvalid,
+        Y_trainvalid=Y_trainvalid_stoc,
+        X_test=X_test,
+        Y_test=Y_test,
+        randnum_split=randnum_split,
+        randnum_train=randnum_train,
         epochs=epochs,
         stoc=stoc,
         randnum_stoc=randnum_stoc,
-        num_optuna_trials = num_optuna_trials, 
+        num_optuna_trials = num_optuna_trials,
         hype=hype,
         imp=imp,
         filepath=filepath,
