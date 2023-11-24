@@ -84,25 +84,24 @@ def run(filepath, device, data_name, model_name, stoc, randnum_train, randnum_sp
     else:
         Y_trainvalid_stoc = Y_trainvalid
 
-
     # Script to run model and collect outputs
-    output=Run_All_Models.All_run(
-        name=data_name,
+    output=Run_All_Models.all_run(
+        filepath=filepath,
+        device=device,
+        data_name=data_name,
         model_name=model_name,
         X_trainvalid=X_trainvalid,
         Y_trainvalid=Y_trainvalid_stoc,
         X_test=X_test,
         Y_test=Y_test,
-        randnum_split=randnum_split,
-        randnum_train=randnum_train,
-        epochs=epochs,
         stoc=stoc,
+        randnum_train=randnum_train,
+        randnum_split=randnum_split,
         randnum_stoc=randnum_stoc,
+        epochs=epochs,
         num_optuna_trials = num_optuna_trials,
         hype=hype,
         imp=imp,
-        filepath=filepath,
-        device=device,
         folds=folds
         )
 
