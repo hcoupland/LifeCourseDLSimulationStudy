@@ -15,7 +15,7 @@ from tsai.data.validation import get_splits
 from tsai.all import *
 
 import logistic_regression_model
-import MLmodel_opt_learner_neat as MLmodel_opt_learner
+import DL_models
 
 def all_run(filepath, device, data_name, model_name, X_trainvalid, Y_trainvalid, X_test, Y_test, stoc, randnum_train, randnum_split, randnum_stoc, epochs=10, num_optuna_trials=100, hype=False, imp=False, folds=5):
     """Function to run the hyperparameter search on train/valid, then to rerun on train/test with selected parameters and save output.
@@ -132,7 +132,7 @@ def all_run(filepath, device, data_name, model_name, X_trainvalid, Y_trainvalid,
             arch = LSTMAttention
 
         # find the hyperparameters using optuna and cross-validation on train/valid
-        trial = MLmodel_opt_learner.hyperopt(
+        trial = DL_models.hyperopt(
             X_trainvalid,
             Y_trainvalid,
             epochs = epochs,
@@ -203,7 +203,7 @@ def all_run(filepath, device, data_name, model_name, X_trainvalid, Y_trainvalid,
                 )
 
         # Retrain the model on train/test with the selected hyperparameters
-        train_time, learner, acc, prec, rec, fone, auc, prc, brier, true_neg, false_pos, false_neg, true_pos, inf_time = MLmodel_opt_learner.model_block(
+        train_time, learner, acc, prec, rec, fone, auc, prc, brier, true_neg, false_pos, false_neg, true_pos, inf_time = DL_models.model_block(
             model_name = model_name,
             arch = arch,
             X = X_trainvalid,
