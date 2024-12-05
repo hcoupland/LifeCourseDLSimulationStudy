@@ -18,7 +18,7 @@ To collate the model run results:
     Run the r script Results_collation/Results collation.R to gather all the different results
 
 To plot the performance and pick the best model parameters:
-    Run the r script Plotting/Main_plotting.R, this produces plots, the table for the paper and the best model table for explainability analysis.
+    Run the r script Plotting/Main_plotting.R, this outputs plots, the table and prepares the data for explainability analysis.
 
 To conduct explainability anlaysis:
     Run the python script explr_from_outputs_gdm.py with the following arguments (that must match a completed run):
