@@ -1,19 +1,34 @@
 To generate the data:
-    The file is Data_generation.R
-    If you run it it should generate 13 data sets with names data1, data2, etc.
+    The file is Data_generation_DAG_gdm.R
+    If you run it it should generate 12 data sets with names Period1, Period2, etc.
 
-To run the ML model:
-    For each data set (data1, data2, ...) you want to run one of each of the following files
-    Deterministic Case:
-        The file to run is Main_cmd0.py
-        In the command line it takes the form: python Main_cmd0.py "DataSetName" "ModelName"
-        Where ModelName is ResNet, InceptionTime, ResCNN, MLSTM-FCN, LSTM-FCN, XCM or TCN
+To run the models:
+    For each data set (Period1, Period2, ...) you want to run Model_run_postdoc/Main_run_file_gdm.py with the following arguments:
+    1. Device e.g. 1, 0 or 'cpu'
+    2. Data name, e.g. Period1, Timing3
+    3. Model name, e.g. XGBoost, LR, InceptionTime
+    4. Stochasticity, e.g. a number between 0 and 1 to give the number of positive cases switched
+    5. Random seed for training and hyperparameter optimisation
+        (we conducted with 7, 8 and 9 and then averaged the results)
 
-    Stochastic Case:
-        The file to run is Main_cmd0_stoc.py
-        In the command line it takes the form: python Main_cmd0_stoc.py "DataSetName" "ModelName" proportion_of_noise
-        Where ModelName is ResNet, InceptionTime, ResCNN, MLSTM-FCN, LSTM-FCN, XCM or TCN
-        And proportion_of_noise is a number from 0.0 to 1.0 indciating the proportion of positive instance to swap with negatives
-        I have just been running this with proportion_of_noise=0.1
+    so in a command line this looks like:
+        e.g. python Model_run_postdoc/Main_run_file_gdm.py 0 Period1 LSTMAttention 0.1 7
 
-I will add the Patch TST model in the morning and commit
+To collate the model run results:
+    Run the r script Results_collation/Results collation.R to gather all the different results
+
+To plot the performance and pick the best model parameters:
+    Run the r script Plotting/Main_plotting.R, this produces plots, the table for the paper and the best model table for explainability analysis.
+
+To conduct explainability anlaysis:
+    Run the python script explr_from_outputs_gdm.py with the following arguments (that must match a run you have already completed):
+    1. Device e.g. 1, 0 or 'cpu'
+    2. Data name, e.g. Period1, Timing3
+    3. Model name, e.g. XGBoost, LR, InceptionTime
+    4. Stochasticity, e.g. a number between 0 and 1 to give the number of positive cases switched
+    5. Random seed for training and hyperparameter optimisation
+        (we conducted with 7, 8 and 9 and then averaged the results)
+    6. Whether to run feature importance/ calculate SHAP values, takes "True" or "False"
+
+To plot the explainability results:
+    Run the r script Plotting/XAI_plotting.R
