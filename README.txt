@@ -3,7 +3,7 @@ To generate the data:
     If you run it it should generate 12 data sets with names Period1, Period2, etc.
 
 To run the models:
-    For each data set (Period1, Period2, ...) you want to run Model_run_postdoc/Main_run_file_gdm.py with the following arguments:
+    For each data set (Period1, Period2, ...) you run Model_run_postdoc/Main_run_file_gdm.py with the following arguments:
     1. Device e.g. 1, 0 or 'cpu'
     2. Data name, e.g. Period1, Timing3
     3. Model name, e.g. XGBoost, LR, InceptionTime
@@ -21,7 +21,7 @@ To plot the performance and pick the best model parameters:
     Run the r script Plotting/Main_plotting.R, this produces plots, the table for the paper and the best model table for explainability analysis.
 
 To conduct explainability anlaysis:
-    Run the python script explr_from_outputs_gdm.py with the following arguments (that must match a run you have already completed):
+    Run the python script explr_from_outputs_gdm.py with the following arguments (that must match a completed run):
     1. Device e.g. 1, 0 or 'cpu'
     2. Data name, e.g. Period1, Timing3
     3. Model name, e.g. XGBoost, LR, InceptionTime
