@@ -1,3 +1,6 @@
+This respoitory is a companion to the paper "Exploring the Potential and Limitations of Deep Learning and Explainable AI for Longitudinal Life Course Analysis" and contains the code required to simulate data and run DL models and create the output plots shown in the paper.
+
+
 To generate the data:
     The file is Data_generation_DAG_gdm.R
     If you run it it should generate 12 data sets with names Period1, Period2, etc.
