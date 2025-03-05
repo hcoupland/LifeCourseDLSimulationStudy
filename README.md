@@ -24,7 +24,7 @@ Once you have run several models or stochasticity levels (for example), you can 
 ## 4) Plot the performance and identify the best model parameters:
 Run the r script Plotting/Main_plotting.R, this outputs the plots for the paper, the table and prepares the data for explainability analysis.
 
-## 5) Conduct explainability anlaysis:
+## 5) Conduct explainability analysis:
 To obtain SHAP values and permutation feature importance (PFI) results, run the python script explr_from_outputs_gdm.py with the following arguments (that must match a completed run):
 1. Device e.g. 1, 0 or 'cpu'
 2. Data name, e.g. Period1, Timing3
