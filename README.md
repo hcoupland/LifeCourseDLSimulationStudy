@@ -1,10 +1,10 @@
 This repository is a companion to the paper "Exploring the Potential and Limitations of Deep Learning and Explainable AI for Longitudinal Life Course Analysis" and contains the code required to simulate data and run DL models and create the output plots shown in the paper.
 
 
-## To generate the data:
+## 1) Generate the data:
 Run the file Data_generation_DAG_gdm.R to generate 12 data sets with names Period1, Period2, etc.
 
-## To run the models:
+## 2) Run the models:
 For each data set (Period1, Period2, ...) you run Model_run_postdoc/Main_run_file_gdm.py in the command line with the following arguments:
 1. Device e.g. 1, 0 or 'cpu'
 2. Data name, e.g. Period1, Timing3
@@ -18,13 +18,13 @@ So in a command line this looks like:
 
 Then hyperparameter optimisation is conducted and the best model parameters are used for a final training.
 
-## To collate the model run results:
+## 3) Collate the model run results:
 Once you have run several models or stochasticity levels (for example), you can run the r script Results_collation/Results collation.R to gather all the different results into one table
 
-## To plot the performance and identify the best model parameters:
+## 4) Plot the performance and identify the best model parameters:
 Run the r script Plotting/Main_plotting.R, this outputs the plots for the paper, the table and prepares the data for explainability analysis.
 
-## To conduct explainability anlaysis:
+## 5) Conduct explainability anlaysis:
 To obtain SHAP values and permutation feature importance (PFI) results, run the python script explr_from_outputs_gdm.py with the following arguments (that must match a completed run):
 1. Device e.g. 1, 0 or 'cpu'
 2. Data name, e.g. Period1, Timing3
